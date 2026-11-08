@@ -1,8 +1,9 @@
 # Stack recipe: Rust with egui / eframe
 
-Status: **planned**. The native Rust runtime (`assets/rust/`: `ai-enablement-core` and `ai-enablement-egui`) is not
-in the skill yet, so detect.mjs says STOP for this stack. Tauri apps are not this stack: their UI is a webview, so
-they use `stacks/web/STACK.md`, "Tauri".
+Status: **planned**. The core exists (`assets/rust/ai-enablement-core`, 3.1.0): the session, adapters, capability
+loading and host rules, passing the same conformance vectors as the web runtime. The egui drawer
+(`ai-enablement-egui`) does not yet, and without it there is nothing to install, so detect.mjs says STOP for this
+stack. Tauri apps are not this stack: their UI is a webview, so they use `stacks/web/STACK.md`, "Tauri".
 
 ## What to do today
 
@@ -15,8 +16,14 @@ they use `stacks/web/STACK.md`, "Tauri".
   2. **The `ai/` folder's data**: skills (`skills/*/SKILL.md`), agents (`agents/*.md`), toolsets, permissions and
      starting memories. They follow `spec/framework.md` and every runtime reads them unchanged. Put them where §4 says.
      `validate.mjs` checks them; tool references wait for the catalog (§9).
-- The rest of this file is the design the runtime is being built to. Treat the API names as provisional until the
-  runtime ships.
+- The rest of this file is the design the runtime is being built to. The core's names are real
+  (`assets/rust/README.md`):
+  - `Session`, with the `View` and `ToolRunner` traits;
+  - `ProviderPolicy`, `before_send` and `GuardedModel`;
+  - `embedded_files!` and `source_from_env`;
+  - `ScreenSource`, `FileSource` and `ChatStore`.
+
+  The drawer's (`AiAgent`, `show`) are provisional until it ships.
 
 ## 1. Survey: what to look for in an egui app
 

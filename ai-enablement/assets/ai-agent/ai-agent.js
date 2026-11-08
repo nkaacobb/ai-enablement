@@ -53,7 +53,7 @@ export { parseSkill } from './core/skills.js';
 export { parseAgent } from './core/agents.js';
 export { parseFrontmatter } from './core/frontmatter.js';
 
-export const VERSION = '1.6.1';
+export const VERSION = '1.7.0';
 
 /** Skills that ship with the runtime (in its skills/ folder) and when they are offered. */
 const BUILTIN_SKILLS = [{ folder: 'create-tool', when: 'workspace' }];
@@ -149,7 +149,7 @@ export function createAiAgent(options = {}) {
   // The system prompt as the next question would send it (the drawer composes it: agent, context, skills, tools…).
   const systemPrompt = async () => {
     const s = store.get();
-    return drawer.systemFor(s, await drawer.baseSystemFor(s));
+    return drawer.session.systemFor(s, await drawer.session.baseSystemFor(s));
   };
 
   let drawer = null;
@@ -259,8 +259,8 @@ export function createAiAgent(options = {}) {
     const s = store.get();
     ctx.setMaxChars(s.maxContextChars);
     const status = await drawer.computeStatus();
-    const [texts, snapshot, system] = await Promise.all([drawer.contextTexts(s), ctx.snapshot(), systemPrompt()]);
-    const set = drawer.toolMode(s) === 'native' ? drawer.toolSet(s) : null;
+    const [texts, snapshot, system] = await Promise.all([drawer.session.contextTexts(s), ctx.snapshot(), systemPrompt()]);
+    const set = drawer.session.toolMode(s) === 'native' ? drawer.session.toolSet(s) : null;
     const callable = set && set.active ? set.classes.callable : [];
     return {
       status: { state: status.state, currentHash: status.hash, syncedHash: status.syncedHash },
@@ -275,8 +275,8 @@ export function createAiAgent(options = {}) {
     store, defaultPrompt, getContextInfo, relayHeaders: o.relayHeaders, theme: o.theme, title: o.title, mount: o.mount,
     isolate: o.isolateKeys !== false, warnTokens: o.contextWarnTokens, relayInfo: () => relay, devWarnings: o.devWarnings,
     getTools: () => toolRegistry.all(), pageId: () => ctx.page?.id,
-    getPolicy: () => (drawer ? drawer.policy() : capabilities.policy()),
-    getCapabilities: () => (drawer ? drawer.capabilityInfo() : null),
+    getPolicy: () => (drawer ? drawer.session.policy() : capabilities.policy()),
+    getCapabilities: () => (drawer ? drawer.session.capabilityInfo() : null),
     memory,
     attachments: o.attachments !== false,
     vision: () => (drawer?.capture || drawer?.attachOn ? {
@@ -491,11 +491,11 @@ export function createAiAgent(options = {}) {
       /** Every tool the application has now (app-wide + this page), with its state. */
       list() {
         const s = store.get();
-        const policy = drawer.policy();
+        const policy = drawer.session.policy();
         return toolRegistry.all().map((t) => ({
           name: t.name, title: t.title, description: t.description, effect: t.effect, group: t.group, pages: [...t.pages],
           toolsets: [...(t.toolsets || [])], enabled: toolEnabled(t, s), available: toolAvailable(t, ctx.page?.id),
-          permission: decidePermission(t, policy) || 'default', agent: drawer.agentHasTool(t.name),
+          permission: decidePermission(t, policy) || 'default', agent: drawer.session.agentHasTool(t.name),
         }));
       },
       /** Add or replace app-wide tools (definitions, lists or toolsets). */
@@ -541,11 +541,11 @@ export function createAiAgent(options = {}) {
 
     /** Skills: instructions the agent loads when a request matches (Agent Skills format). */
     skills: {
-      list: () => drawer.skillsForAgent().map((s) => ({ name: s.name, description: s.description, source: s.source, active: drawer.conv.skills.includes(s.name), allowedTools: [...s.allowedTools] })),
+      list: () => drawer.session.skillsForAgent().map((s) => ({ name: s.name, description: s.description, source: s.source, active: drawer.session.conv.skills.includes(s.name), allowedTools: [...s.allowedTools] })),
       /** Activate a skill in the current conversation (as /name or use_skill would). false when the agent has no such skill. */
-      activate: (name) => !!drawer.activateSkill(name, { via: 'api' }),
+      activate: (name) => !!drawer.session.activateSkill(name, { via: 'api' }),
       /** The skills active in the current conversation. */
-      active: () => [...drawer.conv.skills],
+      active: () => [...drawer.session.conv.skills],
     },
 
     /** The capability index: reload it after a change, and see what did not add up. */

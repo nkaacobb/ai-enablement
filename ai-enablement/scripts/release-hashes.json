@@ -328,6 +328,58 @@
         "relay.php": "357bbc18dbd5c10701796f95e19977680db10f4090e28f5c5ff391b59a1dbb5f",
         "relay.mjs": "b38b640ac4c7b5b0d447f9c2fd637a426fccfb8ac8877085415449e201aa0d0a"
       }
+    },
+    "1.7.0": {
+      "runtime": {
+        "adapters/anthropic.js": "083a09470ba0ebe8caebcefd83a5db62d7f403808be26d4995ae8b898aff3529",
+        "adapters/gemini.js": "e1c32b3e0dcce92b896bc1c96404197439a40b324c1f1133cda96f12b988f637",
+        "adapters/index.js": "b1f42f655a0314adfa2efd48bc6d3acee85eb401c5ccc82e39a0cbd2a755037e",
+        "adapters/openai-chat.js": "01f99e478da0a2f0a40ff3ce67924a19b3b298ba8db7c9fa49ff04486e958ac4",
+        "adapters/relay.js": "bfa1ec99cc8c3f7a8d842e9613c554a833695aeeb7739b3cc177ffb49fe27f74",
+        "ai-agent.css": "5688c7ee632537ae3bb94c8dd0da62e6382b39218d0d1ff75a14b832bb2af955",
+        "ai-agent.d.ts": "e78a3d4b0950084f902bef8f0c3321fe36cb99e89221a0e067c7655e22253e62",
+        "ai-agent.js": "4ff400bee801c3d718d4407ed8fa4135f4a621facf9a120cb8a443a32cd99f57",
+        "core/agents.js": "94a6e8ce77e5310cb4b7fca5684fdc5304a58b064c0eb60cea6bfbf1666e6985",
+        "core/blocks.js": "5b7710110dfdeae3696dad12c4b674b2f2627753d9a28f256f0be5d738697d6d",
+        "core/bytes.js": "c2bbceb031cdd5810cd2535bf4a9295bd1b6c81b695eaba73e6d97e64fbebb72",
+        "core/capabilities.js": "16ebbcd03442b638e7cb30a9a4b209493c0182daab22f6cd8a828691eaa2f0b2",
+        "core/client.js": "d937703a94cf239b86ed796e6bb3f4cc74801f0c6af97a6591b06db55caeb4f8",
+        "core/context.js": "6627a103c52d7007851c835bfc8998312589a079f1f5593ea17221587f918a46",
+        "core/conversation.js": "ee530d5d2daea58a2ab734a646f3ec694c9f2949353f2a25078538b600a7c43e",
+        "core/files.js": "eb4c9695b2b2a90560089c38655eba1d8112dfc1fcde22cd09f6f84fd1a6fba7",
+        "core/frontmatter.js": "b0bf0e89219c5cae804098d0a1f7194e0e53c3faeb2a3d9a0e5bb320dd53c901",
+        "core/hash.js": "f5071f97e31beaa55aa0dd135391594b2e8fbec4657821d5758c9421385ea722",
+        "core/memory.js": "907493ee6d451322582791a329ff45004a4f1ba864e6cdf202777155033d9968",
+        "core/messages.js": "1aa912f13f90e9a04ebe48e342ff7bb4ae6d0ec354251a6bc970edd113875da1",
+        "core/office.js": "61c4f42cb39f033cc575b73560b84373d7ea4d84ff6c780ce50f0b77d3a49a0b",
+        "core/pdf.js": "e01ea19be1d74e2ce84d556720b8ab6d4b0428a1969da4714a22426f18d2e82c",
+        "core/permissions.js": "56fbce03843dbed52ce660ed76f4aa4ca891d73c20ec7913be1fb39b1388987e",
+        "core/prompt.js": "50f445c19fe9caeefb89603080fe48060b4766283a23d85091fb46fe4d5485c1",
+        "core/providers.js": "9fca03bb3bf0fc2b63c4be290fc6457abafdb655ff76cd8b77d318cbe01c9438",
+        "core/reasoning.js": "6cbb117f79457963dc6c7855a862212f13c4d31ed3b61555bda291f0565a8f5c",
+        "core/relay-probe.js": "7d6a83fc976ce074b136fa727f2e6f0d14aacd16c7d5c1055d9d8b61af4f21e7",
+        "core/schema.js": "9380d63e1aed94bcd093b5425bd7f6683811bcc7b2fe5c063e7fa5ae74a93aa7",
+        "core/session.js": "619ca7eb7d021ddac5203fc61727f63d43d70f2db16d06d06fb535dbe352fa88",
+        "core/settings.js": "6243136b99870bf21e67bebb055466a4b194c84084fc32b2570ee95942c87f4f",
+        "core/skills.js": "49fb3f1ff4158dfac782bf4292074fff4cbca0aff348a71c72d1698fbd205d49",
+        "core/tools.js": "218ea9ffcc8d59b6a9a9bcb2edcc8a9ff12f6ed57d7d8bf2949ded48807d0d5f",
+        "core/transport.js": "4838f73abe4699294c8617d4855dc350225cf0f649a7be772efc9809c4e3d57e",
+        "core/workspace.js": "01fbf15fa30f9aec19f46b47bb6d4759a13832771ba4506e95a05d3a24505470",
+        "skills/create-tool/SKILL.md": "1da1ae10189fdf627900b450545be609c932b7063fb200adcd5e051fedec9d09",
+        "ui/capture.js": "65fad0ec25535c2b9b911ac2ff366f827e63dbbd9c90ddebe3542e7fc00b2b5f",
+        "ui/dialogs.js": "07544c5e5ab1f2525b9898397a0bff44838f17e9414d3371529aefe3ff3776dd",
+        "ui/dom.js": "1bc1a3ed0b72060138024b593881a8eac5b3fb4e81b19ef006bf9e6fea379021",
+        "ui/drawer.js": "1de98f98bab77a6abb49fddeba024bbad71c3ec5e8c2cd8a637e99b648001d27",
+        "ui/icons.js": "bc358679ecee724fdb6ad15516fafbaac2de705105114c420721595e59beecd6",
+        "ui/layout-check.js": "a5e86b904ff4a2ec22b23b989d7280fae754fd0402a986925c071e9cd4ec5122",
+        "ui/markdown.js": "7750cd9d9a5cc7451e349dffc30f6418afcf0955b7bcee9361543d513874be8c",
+        "ui/resize.js": "dac02a0838478fb4e0c630d842aa7612275661d23da11a0a83f22a318d1c2778",
+        "ui/settings-panel.js": "b2815620a9e66a88c70219137b5b9ae2ed470dcbdce969bc84c13434654b1a17"
+      },
+      "relay": {
+        "relay.php": "357bbc18dbd5c10701796f95e19977680db10f4090e28f5c5ff391b59a1dbb5f",
+        "relay.mjs": "b38b640ac4c7b5b0d447f9c2fd637a426fccfb8ac8877085415449e201aa0d0a"
+      }
     }
   }
 }

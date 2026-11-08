@@ -1,0 +1,1002 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "adapter-requests",
+  "description": "What each protocol sends: the provider preset (core/providers.js) and the settings resolve into a target (resolveTarget, with its key and model checks), and the adapter builds { url, headers, body } from the neutral request: system, messages with images, tools, toolTurns with images and Gemini thought signatures. The key is \"sk-test-key-123456\" unless the case gives one.",
+  "operation": "settings = sanitizeSettings({ provider, transport, relayUrl, reasoning, maxOutputTokens: maxTokens, temperature, profiles: { [provider]: { baseUrl?, model } } }); t = resolveTarget(settings, () => key, provider); buildChat of adapters/<t.adapter.protocol>.js({ cfg: t.cfg, key: t.key, system, messages, maxTokens: settings.maxOutputTokens, temperature: settings.temperature, tools, toolTurns, turnId }) -> { url, headers, body } | { error: { code, message } }",
+  "reference": "assets/ai-agent 1.7.0",
+  "cases": [
+    {
+      "name": "LM Studio: no model, reasoning off",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "lmstudio",
+        "key": "",
+        "reasoning": "off"
+      },
+      "output": {
+        "url": "http://127.0.0.1:9000/v1/chat/completions",
+        "headers": {},
+        "body": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You help."
+            },
+            {
+              "role": "user",
+              "content": "Q1"
+            },
+            {
+              "role": "assistant",
+              "content": "A1"
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Look at this."
+                },
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                }
+              ]
+            }
+          ],
+          "stream": true,
+          "max_tokens": 1000,
+          "temperature": 0.3,
+          "reasoning_effort": "none"
+        }
+      }
+    },
+    {
+      "name": "LM Studio: model, tools and the exchange",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "lmstudio",
+        "key": "",
+        "model": "qwen/qwen3-8b",
+        "tools": [
+          {
+            "name": "find_text",
+            "description": "Find text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "query"
+              ]
+            }
+          }
+        ],
+        "toolTurns": [
+          {
+            "text": "Searching.",
+            "calls": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "arguments": {
+                  "query": "fox"
+                },
+                "signature": "sig-abc"
+              }
+            ],
+            "results": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "content": "Found 2.",
+                "images": [
+                  {
+                    "mime": "image/png",
+                    "data": "iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "output": {
+        "url": "http://127.0.0.1:9000/v1/chat/completions",
+        "headers": {},
+        "body": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You help."
+            },
+            {
+              "role": "user",
+              "content": "Q1"
+            },
+            {
+              "role": "assistant",
+              "content": "A1"
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Look at this."
+                },
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": "Searching.",
+              "tool_calls": [
+                {
+                  "id": "call_1",
+                  "type": "function",
+                  "function": {
+                    "name": "find_text",
+                    "arguments": "{\"query\":\"fox\"}"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "tool",
+              "tool_call_id": "call_1",
+              "content": "Found 2."
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "[The image returned by the tool call above]"
+                },
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                }
+              ]
+            }
+          ],
+          "stream": true,
+          "tools": [
+            {
+              "type": "function",
+              "function": {
+                "name": "find_text",
+                "description": "Find text.",
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "required": [
+                    "query"
+                  ]
+                }
+              }
+            }
+          ],
+          "tool_choice": "auto",
+          "model": "qwen/qwen3-8b",
+          "max_tokens": 1000,
+          "temperature": 0.3
+        }
+      }
+    },
+    {
+      "name": "OpenAI: max_completion_tokens, no temperature, a base URL ending in /v1",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "openai",
+        "key": "sk-test-key-123456",
+        "model": "gpt-5-mini",
+        "baseUrl": "https://api.openai.com/v1/"
+      },
+      "output": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "headers": {
+          "Authorization": "Bearer sk-test-key-123456"
+        },
+        "body": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You help."
+            },
+            {
+              "role": "user",
+              "content": "Q1"
+            },
+            {
+              "role": "assistant",
+              "content": "A1"
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Look at this."
+                },
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                }
+              ]
+            }
+          ],
+          "stream": true,
+          "model": "gpt-5-mini",
+          "max_completion_tokens": 1000
+        }
+      }
+    },
+    {
+      "name": "DeepSeek: its own path and reasoning switch",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "deepseek",
+        "key": "sk-test-key-123456",
+        "model": "deepseek-chat",
+        "reasoning": "off"
+      },
+      "output": {
+        "url": "https://api.deepseek.com/chat/completions",
+        "headers": {
+          "Authorization": "Bearer sk-test-key-123456"
+        },
+        "body": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You help."
+            },
+            {
+              "role": "user",
+              "content": "Q1"
+            },
+            {
+              "role": "assistant",
+              "content": "A1"
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Look at this."
+                },
+                {
+                  "type": "image_url",
+                  "image_url": {
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                }
+              ]
+            }
+          ],
+          "stream": true,
+          "model": "deepseek-chat",
+          "max_tokens": 1000,
+          "temperature": 0.3,
+          "thinking": {
+            "type": "disabled"
+          }
+        }
+      }
+    },
+    {
+      "name": "Anthropic: tools, the exchange, images, reasoning off",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "anthropic",
+        "key": "sk-test-key-123456",
+        "model": "claude-sonnet-5",
+        "tools": [
+          {
+            "name": "find_text",
+            "description": "Find text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "query"
+              ]
+            }
+          }
+        ],
+        "toolTurns": [
+          {
+            "text": "Searching.",
+            "calls": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "arguments": {
+                  "query": "fox"
+                },
+                "signature": "sig-abc"
+              }
+            ],
+            "results": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "content": "Found 2.",
+                "images": [
+                  {
+                    "mime": "image/png",
+                    "data": "iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "reasoning": "off"
+      },
+      "output": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "headers": {
+          "x-api-key": "sk-test-key-123456",
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
+        "body": {
+          "model": "claude-sonnet-5",
+          "max_tokens": 1000,
+          "messages": [
+            {
+              "role": "user",
+              "content": "Q1"
+            },
+            {
+              "role": "assistant",
+              "content": "A1"
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "image",
+                  "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": "iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                },
+                {
+                  "type": "text",
+                  "text": "Look at this."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Searching."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "call_1",
+                  "name": "find_text",
+                  "input": {
+                    "query": "fox"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "call_1",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Found 2."
+                    },
+                    {
+                      "type": "image",
+                      "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": "iVBORw0KGgoAAAANSUhEUg=="
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "stream": true,
+          "tools": [
+            {
+              "name": "find_text",
+              "description": "Find text.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          ],
+          "system": "You help.",
+          "thinking": {
+            "type": "disabled"
+          }
+        }
+      }
+    },
+    {
+      "name": "Gemini: tools, the exchange with its signature",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "google",
+        "key": "sk-test-key-123456",
+        "model": "models/gemini-2.5-flash",
+        "tools": [
+          {
+            "name": "find_text",
+            "description": "Find text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "query"
+              ]
+            }
+          }
+        ],
+        "toolTurns": [
+          {
+            "text": "Searching.",
+            "calls": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "arguments": {
+                  "query": "fox"
+                },
+                "signature": "sig-abc"
+              }
+            ],
+            "results": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "content": "Found 2.",
+                "images": [
+                  {
+                    "mime": "image/png",
+                    "data": "iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "output": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse",
+        "headers": {
+          "x-goog-api-key": "sk-test-key-123456"
+        },
+        "body": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Q1"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "A1"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Look at this."
+                },
+                {
+                  "inlineData": {
+                    "mimeType": "image/png",
+                    "data": "iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "text": "Searching."
+                },
+                {
+                  "functionCall": {
+                    "name": "find_text",
+                    "args": {
+                      "query": "fox"
+                    }
+                  },
+                  "thoughtSignature": "sig-abc"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "name": "find_text",
+                    "response": {
+                      "result": "Found 2."
+                    }
+                  }
+                },
+                {
+                  "inlineData": {
+                    "mimeType": "image/png",
+                    "data": "iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "maxOutputTokens": 1000,
+            "temperature": 0.3
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "find_text",
+                  "description": "Find text.",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    },
+                    "required": [
+                      "query"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "parts": [
+              {
+                "text": "You help."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "relay: the neutral request as it is",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "openai",
+        "transport": "relay",
+        "relayUrl": "https://app.example/ai-relay",
+        "key": "",
+        "model": "gpt-5-mini",
+        "tools": [
+          {
+            "name": "find_text",
+            "description": "Find text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "query"
+              ]
+            }
+          }
+        ],
+        "toolTurns": [
+          {
+            "text": "Searching.",
+            "calls": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "arguments": {
+                  "query": "fox"
+                },
+                "signature": "sig-abc"
+              }
+            ],
+            "results": [
+              {
+                "id": "call_1",
+                "name": "find_text",
+                "content": "Found 2.",
+                "images": [
+                  {
+                    "mime": "image/png",
+                    "data": "iVBORw0KGgoAAAANSUhEUg=="
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "turnId": "t123"
+      },
+      "output": {
+        "url": "https://app.example/ai-relay",
+        "headers": {
+          "X-Requested-With": "ai-agent-drawer"
+        },
+        "body": {
+          "action": "chat",
+          "provider": "openai",
+          "baseUrl": "https://api.openai.com",
+          "model": "gpt-5-mini",
+          "apiKey": "",
+          "system": "You help.",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Q1"
+            },
+            {
+              "role": "assistant",
+              "content": "A1"
+            },
+            {
+              "role": "user",
+              "content": "Look at this.",
+              "images": [
+                {
+                  "mime": "image/png",
+                  "data": "iVBORw0KGgoAAAANSUhEUg=="
+                }
+              ]
+            }
+          ],
+          "maxTokens": 1000,
+          "temperature": 0.3,
+          "reasoning": "show",
+          "tools": [
+            {
+              "name": "find_text",
+              "description": "Find text.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          ],
+          "toolTurns": [
+            {
+              "text": "Searching.",
+              "calls": [
+                {
+                  "id": "call_1",
+                  "name": "find_text",
+                  "arguments": {
+                    "query": "fox"
+                  },
+                  "signature": "sig-abc"
+                }
+              ],
+              "results": [
+                {
+                  "id": "call_1",
+                  "name": "find_text",
+                  "content": "Found 2.",
+                  "images": [
+                    {
+                      "mime": "image/png",
+                      "data": "iVBORw0KGgoAAAANSUhEUg=="
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "turnId": "t123"
+        }
+      }
+    },
+    {
+      "name": "a cloud provider without a key",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "anthropic",
+        "key": "",
+        "model": "claude-sonnet-5"
+      },
+      "output": {
+        "error": {
+          "code": "auth",
+          "message": "Anthropic (Claude) needs an API key. Open Settings > Model and paste one."
+        }
+      }
+    },
+    {
+      "name": "a model required but missing",
+      "input": {
+        "system": "You help.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1"
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Look at this.",
+            "images": [
+              {
+                "mime": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUg=="
+              }
+            ]
+          }
+        ],
+        "maxTokens": 1000,
+        "temperature": 0.3,
+        "provider": "openai",
+        "key": "sk-test-key-123456"
+      },
+      "output": {
+        "error": {
+          "code": "missing-model",
+          "message": "Choose a OpenAI model in Settings > Model (try \"Load models\")."
+        }
+      }
+    }
+  ]
+}

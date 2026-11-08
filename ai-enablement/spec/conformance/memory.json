@@ -3,7 +3,7 @@
   "suite": "memory",
   "description": "Memory notes: the app's ai-memory.json read into notes (valid ids kept, others numbered m<n>; one line; 500 chars; 100 notes; source defaults to app; created defaults to now), and the MEMORY prompt section. The case-insensitive duplicate check belongs to adding a note (remember), not to reading the file.",
   "operation": "parseMemoryFile(input.json, { now }) -> notes; buildMemoryPrompt({ items, enabled, canWrite }) -> string; memoryText(input.text) -> string",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "file with ids and sources",

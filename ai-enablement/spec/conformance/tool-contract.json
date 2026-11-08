@@ -3,7 +3,7 @@
   "suite": "tool-contract",
   "description": "normalizeTool and toMcpTool: a tool definition (handler left out) becomes the runtime's contract and its MCP descriptor, or is refused with the reason. Effects come from \"effect\", else MCP annotations, else \"write\".",
   "operation": "normalizeTool({ ...input.tool, run }) -> { tool (functions left out), mcp: toMcpTool(tool) } | { error }",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "shorthand parameters",

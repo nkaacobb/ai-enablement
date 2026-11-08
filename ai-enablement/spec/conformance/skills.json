@@ -3,7 +3,7 @@
   "suite": "skills",
   "description": "Agent Skills: SKILL.md parsed and checked (name = folder, lowercase-hyphen, description required, body required, allowed-tools read as information); safe skill file paths; /name commands.",
   "operation": "parseSkill(input.text, { folder: input.folder }) -> { skill (base left out), problems }; skillFilePath(path); parseSlashCommand(text, names)",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "valid skill",

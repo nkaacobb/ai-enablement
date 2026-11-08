@@ -3,7 +3,7 @@
   "suite": "plan-turn",
   "description": "planTurn and contextState: does the next question carry a snapshot, and what does the flag show? messages is the transcript before the question; a message carries a snapshot { hash, text? } (text absent = a stub). The window is windowStart(n) = max(0, n - max(2, historyMessages)).",
   "operation": "planTurn(input) -> { attach, reason, syncedHash }; contextState(input) -> { state, pending }; windowStart(messages.length + 1, historyMessages)",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "sharing off",

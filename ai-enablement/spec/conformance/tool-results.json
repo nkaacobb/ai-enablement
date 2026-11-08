@@ -3,7 +3,7 @@
   "suite": "tool-results",
   "description": "serializeResult: what a tool's return value becomes for the model. undefined/null/true -> \"Done.\"; strings as written; anything else as compact stableStringify; capped with a note.",
   "operation": "serializeResult(input.value, input.max) -> string",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "null",

@@ -3,7 +3,7 @@
   "suite": "stable-stringify",
   "description": "stableStringify: JSON with object keys sorted (code-unit order) at every level, arrays kept in order; indent 0 means compact. Numbers are written as ECMAScript Number::toString writes them (1e+21, not 1e21): a runtime in another language needs a JS-compatible formatter (Rust: ryu-js). Content builders, tool results and fingerprints rely on it being deterministic.",
   "operation": "stableStringify(input.value, input.indent) -> string",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "sorted keys, indented",

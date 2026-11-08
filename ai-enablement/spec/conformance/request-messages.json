@@ -1,0 +1,457 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "request-messages",
+  "description": "buildRequestMessages: the transcript (the new question last) becomes the provider-neutral messages of a request. The window is the last max(2, historyMessages) entries; only the newest snapshot in it is sent whole (older ones become a one-line stub); the question carries the unchanged note or the view state; earlier assistant turns are prefixed with the actions they took; files are sent with their newest question; only the newest imageMessages questions with images send them. \"images\" maps a shot id to its image and stands in for imageFor (absent: the model sees no images). normalizeMessages: what every adapter sends (user/assistant only, no empty turns, same-role turns merged, the first turn from the user).",
+  "operation": "buildRequestMessages({ ...input, imageFor: input.images ? (shot) => input.images[shot.id] || null : null }) -> messages; normalizeMessages(input.normalize) -> messages",
+  "reference": "assets/ai-agent 1.7.0",
+  "cases": [
+    {
+      "name": "first question with its snapshot and view state",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "What is this?",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "Hello.",
+              "pageId": "editor",
+              "pageTitle": "Editor",
+              "chars": 6,
+              "totalChars": 6,
+              "truncated": false,
+              "at": "2026-01-02T03:04:05.000Z"
+            }
+          }
+        ],
+        "viewText": "Cursor: line 1"
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "<page_snapshot page=\"editor\" title=\"Editor\" hash=\"aaaaaaa\" chars=\"6\" captured=\"2026-01-02T03:04:05.000Z\">\nHello.\n</page_snapshot>\n\n<view_state>\nCursor: line 1\n</view_state>\n\nWhat is this?"
+        }
+      ]
+    },
+    {
+      "name": "unchanged screen: a note instead of the page",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "Hello.",
+              "pageId": "editor",
+              "pageTitle": "Editor",
+              "chars": 6,
+              "totalChars": 6,
+              "truncated": false,
+              "at": "2026-01-02T03:04:05.000Z"
+            }
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Q2"
+          }
+        ],
+        "unchangedHash": "aaaaaaaaaaaaaa"
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "<page_snapshot page=\"editor\" title=\"Editor\" hash=\"aaaaaaa\" chars=\"6\" captured=\"2026-01-02T03:04:05.000Z\">\nHello.\n</page_snapshot>\n\nQ1"
+        },
+        {
+          "role": "assistant",
+          "content": "A1"
+        },
+        {
+          "role": "user",
+          "content": "[The screen is unchanged since page snapshot aaaaaaa: it is still current.]\n\nQ2"
+        }
+      ]
+    },
+    {
+      "name": "an older snapshot becomes a stub",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "Old.",
+              "pageId": "editor",
+              "pageTitle": "Editor",
+              "chars": 4,
+              "totalChars": 4,
+              "truncated": false,
+              "at": "2026-01-02T03:04:05.000Z"
+            }
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Q2",
+            "snapshot": {
+              "hash": "bbbbbbbbbbbbbb",
+              "text": "New.",
+              "pageId": "editor",
+              "pageTitle": "Editor",
+              "chars": 4,
+              "totalChars": 900,
+              "truncated": true,
+              "at": "2026-01-02T03:04:05.000Z"
+            }
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "[Page snapshot aaaaaaa of \"Editor\" omitted here: a newer snapshot appears later in the conversation.]\n\nQ1"
+        },
+        {
+          "role": "assistant",
+          "content": "A1"
+        },
+        {
+          "role": "user",
+          "content": "<page_snapshot page=\"editor\" title=\"Editor\" hash=\"bbbbbbb\" chars=\"900\" truncated=\"true\" captured=\"2026-01-02T03:04:05.000Z\">\nNew.\n</page_snapshot>\n\nQ2"
+        }
+      ]
+    },
+    {
+      "name": "window: only the last entries",
+      "input": {
+        "historyMessages": 2,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Q1",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "Old.",
+              "pageId": "editor",
+              "pageTitle": "Editor",
+              "chars": 4,
+              "totalChars": 4,
+              "truncated": false,
+              "at": "2026-01-02T03:04:05.000Z"
+            }
+          },
+          {
+            "role": "assistant",
+            "content": "A1"
+          },
+          {
+            "role": "user",
+            "content": "Q2"
+          },
+          {
+            "role": "assistant",
+            "content": "A2"
+          },
+          {
+            "role": "user",
+            "content": "Q3"
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "assistant",
+          "content": "A2"
+        },
+        {
+          "role": "user",
+          "content": "Q3"
+        }
+      ]
+    },
+    {
+      "name": "actions line before an earlier answer",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Filter."
+          },
+          {
+            "role": "assistant",
+            "content": "Done.",
+            "actions": [
+              {
+                "call": "filter_orders(status: \"open\")",
+                "status": "ok",
+                "summary": "Showing 3 orders."
+              },
+              {
+                "call": "delete_all()",
+                "status": "declined"
+              },
+              {
+                "call": "x()",
+                "status": "off"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": "Thanks."
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "Filter."
+        },
+        {
+          "role": "assistant",
+          "content": "[Actions taken: filter_orders(status: \"open\") → done (Showing 3 orders.); delete_all() → declined by the user; x() → tool turned off]\n\nDone."
+        },
+        {
+          "role": "user",
+          "content": "Thanks."
+        }
+      ]
+    },
+    {
+      "name": "files: sent with their newest question, gone, closing tag escaped",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Read this.",
+            "files": [
+              {
+                "name": "notes.txt",
+                "kind": "text",
+                "label": "Text",
+                "size": 12,
+                "hash": "0123456789abcd",
+                "text": "Line one.\nA </attached_file> inside.",
+                "chars": 35,
+                "totalChars": 35,
+                "truncated": false
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Read."
+          },
+          {
+            "role": "user",
+            "content": "Again.",
+            "files": [
+              {
+                "name": "notes.txt",
+                "kind": "text",
+                "label": "Text",
+                "size": 12,
+                "hash": "0123456789abcd",
+                "text": "Line one.\nA </attached_file> inside.",
+                "chars": 35,
+                "totalChars": 35,
+                "truncated": false
+              },
+              {
+                "name": "old.pdf",
+                "label": "PDF",
+                "chars": 10
+              }
+            ]
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "[File \"notes.txt\" (Text) omitted here: it is attached again later in the conversation.]\n\nRead this."
+        },
+        {
+          "role": "assistant",
+          "content": "Read."
+        },
+        {
+          "role": "user",
+          "content": "<attached_file name=\"notes.txt\" type=\"Text\" chars=\"35\" hash=\"0123456\">\nLine one.\nA <\\/attached_file> inside.\n</attached_file>\n\n[File \"old.pdf\" (PDF) was attached to this message; its text is not available any more.]\n\nAgain."
+        }
+      ]
+    },
+    {
+      "name": "images: only the newest questions that carry them",
+      "input": {
+        "imageMessages": 1,
+        "images": {
+          "s1": {
+            "mime": "image/jpeg",
+            "data": "QUJDREVGR0hJSktMTU5PUA1=="
+          },
+          "s2": {
+            "mime": "image/jpeg",
+            "data": "QUJDREVGR0hJSktMTU5PUA2=="
+          },
+          "s3": {
+            "mime": "image/jpeg",
+            "data": "QUJDREVGR0hJSktMTU5PUA3=="
+          }
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "Look.",
+            "shots": [
+              {
+                "id": "s1"
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "Seen."
+          },
+          {
+            "role": "user",
+            "content": "And these.",
+            "shots": [
+              {
+                "id": "s2"
+              },
+              {
+                "id": "s3",
+                "name": "chart \"Q3\".png",
+                "kind": "image"
+              }
+            ]
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "[A screenshot was attached to this message; it is not included any more.]\n\nLook."
+        },
+        {
+          "role": "assistant",
+          "content": "Seen."
+        },
+        {
+          "role": "user",
+          "content": "[Attached to this message: a screenshot of the user's screen (taken when this message was sent) and the image file \"chart  Q3 .png\".]\n\nAnd these.",
+          "images": [
+            {
+              "mime": "image/jpeg",
+              "data": "QUJDREVGR0hJSktMTU5PUA2=="
+            },
+            {
+              "mime": "image/jpeg",
+              "data": "QUJDREVGR0hJSktMTU5PUA3=="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "images the model cannot see: notes only",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Look.",
+            "shots": [
+              {
+                "id": "s1"
+              },
+              {
+                "id": "s2"
+              }
+            ]
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "[2 screenshots were attached to this message; they are not included any more.]\n\nLook."
+        }
+      ]
+    },
+    {
+      "name": "normalize: merge, drop empty, user first",
+      "input": {
+        "normalize": [
+          {
+            "role": "assistant",
+            "content": "Hi."
+          },
+          {
+            "role": "system",
+            "content": "x"
+          },
+          {
+            "role": "user",
+            "content": "  "
+          },
+          {
+            "role": "user",
+            "content": "A"
+          },
+          {
+            "role": "user",
+            "content": "B",
+            "images": [
+              {
+                "mime": "image/jpeg",
+                "data": "QUJDREVGR0hJSktMTU5PUA1=="
+              },
+              {
+                "mime": "text/plain",
+                "data": "QUJDREVGR0hJSktMTU5PUA=="
+              }
+            ]
+          },
+          {
+            "role": "assistant",
+            "content": "C"
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "user",
+          "content": "(The conversation continues.)"
+        },
+        {
+          "role": "assistant",
+          "content": "Hi."
+        },
+        {
+          "role": "user",
+          "content": "A\n\nB",
+          "images": [
+            {
+              "mime": "image/jpeg",
+              "data": "QUJDREVGR0hJSktMTU5PUA1=="
+            }
+          ]
+        },
+        {
+          "role": "assistant",
+          "content": "C"
+        }
+      ]
+    }
+  ]
+}

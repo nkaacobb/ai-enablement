@@ -1,9 +1,9 @@
 {
   "name": "ai-enablement",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "license": "MIT",
-  "description": "AI Enablement: install, upgrade and extend an application's AI layer on any stack (web today; Rust/egui and C#/WinForms planned) — the portable contract with conformance vectors, per-stack recipes, the screen-aware agent drawer runtime, tools and toolsets (MCP-compatible), Agent Skills, agents, permissions, relays, a dev workspace for in-app tool authoring, examples, tests and lifecycle tooling (an agent skill).",
+  "description": "AI Enablement: install, upgrade and extend an application's AI layer on any stack (web today; a Rust core for egui apps, its drawer and C#/WinForms planned) — the portable contract with conformance vectors, per-stack recipes, the screen-aware agent drawer runtime, tools and toolsets (MCP-compatible), Agent Skills, agents, permissions, relays, a dev workspace for in-app tool authoring, examples, tests and lifecycle tooling (an agent skill).",
   "type": "module",
   "scripts": {
     "demo": "node assets/relay/relay.mjs --static .",

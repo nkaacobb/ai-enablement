@@ -3,7 +3,7 @@
   "suite": "permissions",
   "description": "Permission rules (tool name, * glob, toolset:<glob>, effect:<glob>) merged from index, options and the active agent; deny > ask > allow > the user's settings; system always confirms.",
   "operation": "decision = decidePermission(tool, mergePolicies(...input.policies.map(normalizePolicy))); confirm = needsConfirmation({ tool, decision, settings: input.settings, allowedForChat: input.allowedForChat })",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "read: no rule, no card",

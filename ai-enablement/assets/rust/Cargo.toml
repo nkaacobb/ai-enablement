@@ -1,0 +1,5 @@
+# The native runtimes of AI Enablement (development workspace of the skill). Apps vendor the crates themselves
+# (crates/ai-enablement-*), not this workspace file.
+[workspace]
+resolver = "2"
+members = ["ai-enablement-core"]

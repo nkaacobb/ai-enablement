@@ -6,9 +6,11 @@ The runtime (the *how*) under the application's capability folder (the *what*, `
 host app ──hooks──▶ ContextManager ──snapshot/hash──▶ conversation.js (planTurn / buildRequestMessages)
    │                    (core/context.js)                           │
    │                                                                ▼
-   ├── toggle / push ◀── AgentDrawer (ui/drawer.js) ──▶ client.js (streamChat, fallback)
-   │                         │   ▲                            │
-   │                         │   └── markdown.js (render)     ▼
+   ├── toggle / push ◀── AgentDrawer (ui/drawer.js) ◀─view hooks── AgentSession (core/session.js)
+   │                         │   ▲                                       │  tool loop, cards, built-ins, chats
+   │                         │   └── markdown.js (render)                ▼
+   │                         │                              client.js (streamChat, fallback)
+   │                         │                                           │
    │                         ▼                          adapters/{openai-chat, anthropic, gemini, relay}.js
    └── settings button ─▶ Settings panel (ui/settings-panel.js)        │
                               │                                       ▼
@@ -48,7 +50,8 @@ host app ──hooks──▶ ContextManager ──snapshot/hash──▶ conver
 | `core/transport.js` | `requestJson`, `requestStream` (idle timeout, abort), SSE parser, error codes + guidance, redaction. | no |
 | `core/messages.js`, `core/reasoning.js` | Transcript normalisation and the neutral image format (`images: [{ mime, data }]`); `<think>` splitting. | no |
 | `adapters/*.js` | One per wire protocol: build request, parse stream chunks / whole replies, list models. | no |
-| `ui/drawer.js` | The drawer: toggles, open/close/push, streaming render, receipts, flag, saved chats, resume, actions, errors, the agent picker and the active agent (tools, skills, permissions, context layers, memory policy), the tool loop with permission checks, the built-in tools (`remember`, `forget`, `take_screenshot`, `use_skill`, `read_skill_file`, the workspace tools, `describeHost`), the camera button and thumbnails, the + menu, drag and drop, paste, file chips and the file viewer. | yes |
+| `core/session.js` | The agent without its UI (`AgentSession`): the active agent (tools, skills, permissions, context layers, memory policy), the system prompt, the tool set of each request, the tool loop (`runModel`, `executeTool`: every check, the cards it asks as data, the run with its timeout), the built-in tools (`remember`, `forget`, `take_screenshot`, `use_skill`, `read_skill_file`, the workspace tools, `describeHost`), a question's start and end (`beginTurn`, `endTurn`), the context flag, saved chats. It shows things through view hooks, and runs headless (the `execute-tool` and `tool-loop` conformance suites drive it). This is what other stacks port. | no |
+| `ui/drawer.js` | The drawer, a view over the session: toggles, open/close/push, streaming render, receipts, the flag, the tool rows and the cards (the question each card asks, including the diff before a file is replaced), the saved-chat library, resume, actions, errors, the agent picker, the camera button and thumbnails, the + menu, drag and drop, paste, file chips and the file viewer. | yes |
 | `skills/create-tool/SKILL.md` | The built-in skill for in-app authoring (offered while the workspace answers). | – |
 | `ui/capture.js` | Screenshots: the app's `screenshot` hook, or the browser's screen capture of this tab (drawer cropped off); scaled JPEG + thumbnail. Attached image files take the same road (`imageFromFile`). | yes |
 | `ui/settings-panel.js` | The modal: Model / Agent (with the active agent and its skills) / Tools (with permission badges) / Memory / Vision / Context tabs, draft + save, load models, test connection. | yes |
@@ -65,7 +68,7 @@ Outside the runtime:
 | `spec/` | The portable contract every runtime implements: `framework.md`, `context-sync.md`, `behaviour.md`, `tool-catalog.md`, and `conformance/*.json` (frozen input → output vectors from this runtime). |
 | `stacks/<id>/STACK.md` | One recipe per stack (`web`, `rust-egui`, `dotnet-winforms`): how each install step is done there. |
 | `scripts/detect.mjs` | Run first on any app: the **stack** (`scripts/lib/stacks.mjs`: from Cargo.toml, .csproj, tauri.conf.json, package.json, PHP/HTML; supported / planned / unsupported), then what is there (runtime, relay, integration, capability folders, manifest or 1.x record, dev-time folders), which version, are the copies unchanged, which features are used, which workarounds are now redundant; the lifecycle route. |
-| `scripts/conformance-export.mjs`, `scripts/lib/conformance.mjs` | The conformance suites (what each pins, its cases, how this runtime computes the output) and the export that writes `spec/conformance/` (`--write`, only for an intended behaviour change). |
+| `scripts/conformance-export.mjs`, `scripts/lib/conformance.mjs`, `scripts/lib/conformance-runtime.mjs` | The conformance suites (what each pins, its cases, how this runtime computes the output: the pure functions; then requests, adapters and the session through a scripted harness) and the export that writes `spec/conformance/` (`--write`, only for an intended behaviour change). |
 | `scripts/validate.mjs` | Loads a capability folder with the runtime's own modules (a compiled app's tools from its generated tool catalog): errors and warnings; checks the manifest and the stack. |
 | `scripts/scaffold.mjs` | Creates a tool, toolset, skill or agent from `assets/templates/` and registers it; never overwrites. |
 | `scripts/workspace.mjs` | The development workspace server (static site + relay + `/ai-workspace`): read the app's source, write in its capability folder. Never deployed. |
@@ -73,16 +76,18 @@ Outside the runtime:
 | `scripts/verify.mjs` | Drives headless Edge/Chrome through an integration and reports pass/fail per check, including every Settings tab against its layout spec (`scripts/lib/settings-layout.mjs`, shared with the browser tests). |
 | `scripts/guards.mjs`, `scripts/lib/css-guards.mjs` | The layout guards of an app's runtime stylesheet: a small CSS reader (rules, specificity, the winning declaration) that `detect.mjs` uses for `layoutGuards` and the host's element rules; `--apply` adds missing guard blocks to an edited copy in place. |
 | `scripts/lib/cdp.mjs` | Zero-dependency DevTools-protocol driver (Node 22+ global WebSocket), shared by `verify.mjs` and the browser tests. |
-| `tests/` | `conformance` (this runtime against `spec/conformance/`), `runtime` (pure modules), `framework` (frontmatter, schema, permissions, skills, agents, the capability index, the workspace client), `files` (attachment readers), `relay` (both relays + fake upstream), `browser` (real browser: keys, dialogs, tools, memory, screenshots, attachments), `framework-browser` (agents, skills, permissions, in-app authoring end to end), `workspace` (the dev server's rules), `lifecycle` (scaffold, validate), `example` (Hello World), `detect` (stacks too), `guards`. `fixtures/hostile-host/`: a page whose stylesheet styles bare elements (the settings-layout regression, also for `verify.mjs`). |
+| `tests/` | `conformance` (this runtime against `spec/conformance/`), `session` (the session headless: saved chats, agents, reset), `runtime` (pure modules), `framework` (frontmatter, schema, permissions, skills, agents, the capability index, the workspace client), `files` (attachment readers), `relay` (both relays + fake upstream), `browser` (real browser: keys, dialogs, tools, memory, screenshots, attachments), `framework-browser` (agents, skills, permissions, in-app authoring end to end), `workspace` (the dev server's rules), `lifecycle` (scaffold, validate), `example` (Hello World), `detect` (stacks too), `guards`. `fixtures/hostile-host/`: a page whose stylesheet styles bare elements (the settings-layout regression, also for `verify.mjs`). |
 
 Everything under `core/` and `adapters/` is DOM-free, which is why the Node relay can import it and the unit tests can
 run without a browser. What needs a browser (`ui/`) is covered by `tests/browser.test.mjs`.
 
 ## One request, end to end
 
-1. User presses Enter. `AgentDrawer.send()` checks the configuration (`resolveTarget`) before touching the transcript.
-2. `ContextManager.snapshot()` reads the content hook and fingerprints it; `planTurn()` decides whether to attach it.
-3. The user message is added with its receipt chip (Read the page / Page unchanged); the flag updates.
+1. User presses Enter. `AgentDrawer.send()` has the session check the configuration (`resolveTarget`) before touching
+   the transcript.
+2. `AgentSession.beginTurn()`: `ContextManager.snapshot()` reads the content hook and fingerprints it; `planTurn()`
+   decides whether to attach it; the user message joins the transcript (a `/skill` activates that skill).
+3. The drawer shows the user message with its receipt chip (Read the page / Page unchanged); the flag updates.
 4. `buildSystemPrompt()` = editable prompt + the active agent's instructions + app context + page context (each as
    the agent's context layers allow) + screen protocol (+ the attached-files rules while the conversation has files,
    + the image rules for vision models) + memory (as the agent's memory policy allows) + skills (listed; the active
@@ -91,13 +96,13 @@ run without a browser. What needs a browser (`ui/`) is covered by `tests/browser
    attached files as `<attached_file>` blocks on their question (a file attached again is sent once); images
    (screenshots and attached image files) of the two newest questions that have one go along as images.
 6. `streamChat()` → adapter → `requestStream()`; fragments arrive as `text` / `reasoning` events. With tools, the
-   reply may end in tool calls: the drawer checks each (on? here? arguments?), asks the user where the settings say
-   so, runs the app's function, and sends the results — plus the screen, if it changed — back for another round,
-   until the model answers (`AgentDrawer.runModel`, `executeTool`).
+   reply may end in tool calls: the session checks each (on? here? arguments?), asks the user through the drawer's
+   cards where the settings say so, runs the app's function, and sends the results — plus the screen, if it
+   changed — back for another round, until the model answers (`AgentSession.runModel`, `executeTool`).
 7. The drawer accumulates raw text, splits inline `<think>` blocks, and re-renders Markdown at most once per frame.
-8. On finish: the reply is stored, the chat persisted (without snapshot text), and the flag recomputed. On failure
-   with no text: the question is removed from the transcript (so the sync state is unchanged) and the error is shown
-   with hints and an "Open settings" button.
+8. On finish (`AgentSession.endTurn`): the reply is stored, the chat persisted (without snapshot text), and the flag
+   recomputed. On failure with no text and no action taken: the question is removed from the transcript (so the sync
+   state is unchanged) and the drawer shows the error with hints and an "Open settings" button.
 
 ## Security posture
 
@@ -140,4 +145,6 @@ probe, production relays and the verification tooling; tools (1.2); memory and s
 attachments — images and files from the + button, read in the browser without dependencies (1.5); and, as AI
 Enablement (skill 2.0, runtime 1.6), the capability folder with MCP-compatible tools and toolsets, Agent Skills,
 agents, permissions, and in-app tool authoring through the development workspace; then (runtime 1.6.1) the layout
-guards that keep the settings dialog whole and the host page's element CSS out of the agent's UI.
+guards that keep the settings dialog whole and the host page's element CSS out of the agent's UI; then (runtime 1.7) the
+session taken out of the drawer, so the tool loop runs headless and other stacks port it against the conformance
+vectors.

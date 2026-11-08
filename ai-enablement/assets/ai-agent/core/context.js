@@ -71,10 +71,12 @@ export function clip(text, maxChars) {
 }
 
 export class ContextManager {
-  constructor({ app = null, page = null, maxChars = DEFAULT_MAX_CONTEXT_CHARS } = {}) {
+  /** `now`: the clock that stamps snapshots (tests and conformance vectors pass a fixed one). */
+  constructor({ app = null, page = null, maxChars = DEFAULT_MAX_CONTEXT_CHARS, now = () => Date.now() } = {}) {
     this.app = app;
     this.page = page;
     this.maxChars = maxChars;
+    this.now = now;
   }
 
   setApp(app) { this.app = app; }
@@ -140,7 +142,7 @@ export class ContextManager {
       // The fingerprint covers the whole content (not only the part that fits), plus which page it came from.
       hash: hashText(`${pageId}\n${pageTitle}\n${full}`),
       empty: full.trim() === '',
-      at: new Date().toISOString(),
+      at: new Date(this.now()).toISOString(),
       error,
     };
   }

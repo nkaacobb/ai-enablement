@@ -1,0 +1,559 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "adapter-streams",
+  "description": "What each protocol reads back. An HTTP response (status, content type, the body in chunks) goes through the transport: SSE parsed as EventSource does (event and data fields, a blank line dispatches, \":\" comments, CRLF, records split across chunks anywhere); a whole JSON reply when it is not a stream; a stream without its content type still read; HTTP errors classified with their guidance and the key redacted. Then the adapter: text, reasoning, tool calls assembled from their pieces, truncation, in-stream errors. The request is fixed: system \"S\", one user message \"Hi\", max tokens 1000, temperature 0.3, the key \"sk-test-key-123456\". Output: the events in order and the result, or the events and the error.",
+  "operation": "adapter.stream({ cfg: resolveTarget(...).cfg, key, system: \"S\", messages: [{ role: \"user\", content: \"Hi\" }], maxTokens: 1000, temperature: 0.3, onEvent, fetch: () => a response of input.response.status (200), content-type input.response.contentType, body input.response.chunks }) -> { events, result: { usage, toolCalls, truncated? } } | { events, error: { code, message, hints? } }",
+  "reference": "assets/ai-agent 1.7.0",
+  "cases": [
+    {
+      "name": "openai: text and reasoning, comments, usage, [DONE]",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            ": keepalive\n\ndata: {\"choices\":[{\"delta\":{\"reasoning_content\":\"Think.\"},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\"Hel\"},\"finish_reason\":null}]}\n\n",
+            "data: {\"choices\":[{\"delta\":{\"content\":\"lo.\"},\"finish_reason\":\"stop\"}]}\n\ndata: {\"usage\":{\"prompt_tokens\":9,\"completion_tokens\":3},\"choices\":[]}\n\n",
+            "data: [DONE]\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "reasoning",
+            "text": "Think."
+          },
+          {
+            "type": "text",
+            "text": "Hel"
+          },
+          {
+            "type": "text",
+            "text": "lo."
+          }
+        ],
+        "result": {
+          "usage": {
+            "input": 9,
+            "output": 3
+          },
+          "toolCalls": []
+        }
+      }
+    },
+    {
+      "name": "openai: a record split across chunks, CRLF",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"choices\":[{\"delta\":{\"con",
+            "tent\":\"A\"}}]}\r",
+            "\n\r\ndata: {\"choices\":[{\"delta\":{\"content\":\"B\"}}]}\r\n\r\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "text",
+            "text": "A"
+          },
+          {
+            "type": "text",
+            "text": "B"
+          }
+        ],
+        "result": {
+          "toolCalls": []
+        }
+      }
+    },
+    {
+      "name": "openai: tool calls in pieces",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_a\",\"function\":{\"name\":\"find_text\",\"arguments\":\"{\\\"que\"}}]},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"ry\\\": \\\"fox\\\"}\"}},{\"index\":1,\"id\":\"call_b\",\"function\":{\"name\":\"set_size\",\"arguments\":\"{\\\"size\\\": 12}\"}}]},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "result": {
+          "toolCalls": [
+            {
+              "id": "call_a",
+              "name": "find_text",
+              "arguments": {
+                "query": "fox"
+              },
+              "raw": "{\"query\": \"fox\"}"
+            },
+            {
+              "id": "call_b",
+              "name": "set_size",
+              "arguments": {
+                "size": 12
+              },
+              "raw": "{\"size\": 12}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "openai: cut off while writing a call",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_a\",\"function\":{\"name\":\"write\",\"arguments\":\"{\\\"text\\\": \\\"abc\"}}]},\"finish_reason\":null}]}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "result": {
+          "toolCalls": [
+            {
+              "id": "call_a",
+              "name": "write",
+              "arguments": {},
+              "raw": "{\"text\": \"abc",
+              "argsError": "the JSON stops before it is closed, after 13 characters"
+            }
+          ],
+          "truncated": true
+        }
+      }
+    },
+    {
+      "name": "openai: a whole JSON reply",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "application/json",
+          "chunks": [
+            "{\"choices\":[{\"message\":{\"content\":\"Whole.\",\"reasoning_content\":\"R.\",\"tool_calls\":[{\"id\":\"c1\",\"function\":{\"name\":\"find_text\",\"arguments\":\"{\\\"query\\\":\\\"x\\\"}\"}}]},\"finish_reason\":\"length\"}],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":2}}"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "reasoning",
+            "text": "R."
+          },
+          {
+            "type": "text",
+            "text": "Whole."
+          }
+        ],
+        "result": {
+          "usage": {
+            "input": 1,
+            "output": 2
+          },
+          "toolCalls": [
+            {
+              "id": "c1",
+              "name": "find_text",
+              "arguments": {
+                "query": "x"
+              },
+              "raw": "{\"query\":\"x\"}"
+            }
+          ],
+          "truncated": true
+        }
+      }
+    },
+    {
+      "name": "openai: an error inside the stream",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Par\"},\"finish_reason\":null}]}\n\ndata: {\"error\":{\"message\":\"Model unloaded\"}}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "text",
+            "text": "Par"
+          }
+        ],
+        "error": {
+          "code": "missing-model",
+          "message": "Model unloaded"
+        }
+      }
+    },
+    {
+      "name": "openai: a stream without its content type",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "text/plain",
+          "chunks": [
+            "data: {\"choices\":[{\"delta\":{\"content\":\"Still read.\"},\"finish_reason\":null}]}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "text",
+            "text": "Still read."
+          }
+        ],
+        "result": {
+          "toolCalls": []
+        }
+      }
+    },
+    {
+      "name": "anthropic: thinking, text, a tool call, max_tokens",
+      "input": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-5",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":12}}}\n\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"thinking_delta\",\"thinking\":\"Hmm.\"}}\n\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"text_delta\",\"text\":\"Let me check.\"}}\n\ndata: {\"type\":\"content_block_start\",\"index\":2,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"find_text\"}}\n\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"query\\\":\"}}\n\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" \\\"fox\\\"}\"}}\n\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"max_tokens\"},\"usage\":{\"output_tokens\":40}}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "reasoning",
+            "text": "Hmm."
+          },
+          {
+            "type": "text",
+            "text": "Let me check."
+          }
+        ],
+        "result": {
+          "usage": {
+            "input": 12,
+            "output": 40
+          },
+          "toolCalls": [
+            {
+              "id": "toolu_1",
+              "name": "find_text",
+              "arguments": {
+                "query": "fox"
+              },
+              "raw": "{\"query\": \"fox\"}"
+            }
+          ],
+          "truncated": true
+        }
+      }
+    },
+    {
+      "name": "anthropic: overloaded",
+      "input": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-5",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "rate-limit",
+          "message": "Overloaded"
+        }
+      }
+    },
+    {
+      "name": "gemini: thought, text, a call with its signature, MAX_TOKENS",
+      "input": {
+        "provider": "google",
+        "model": "gemini-2.5-flash",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Plan.\",\"thought\":true},{\"text\":\"Calling.\"}]}}]}\n\ndata: {\"candidates\":[{\"content\":{\"parts\":[{\"functionCall\":{\"name\":\"find_text\",\"args\":{\"query\":\"fox\"}},\"thoughtSignature\":\"sig-1\"}]},\"finishReason\":\"MAX_TOKENS\"}],\"usageMetadata\":{\"promptTokenCount\":5,\"candidatesTokenCount\":7}}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "reasoning",
+            "text": "Plan."
+          },
+          {
+            "type": "text",
+            "text": "Calling."
+          }
+        ],
+        "result": {
+          "usage": {
+            "input": 5,
+            "output": 7
+          },
+          "toolCalls": [
+            {
+              "id": "gemini_1",
+              "name": "find_text",
+              "arguments": {
+                "query": "fox"
+              },
+              "signature": "sig-1"
+            }
+          ],
+          "truncated": true
+        }
+      }
+    },
+    {
+      "name": "gemini: blocked prompt",
+      "input": {
+        "provider": "google",
+        "model": "gemini-2.5-flash",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "data: {\"promptFeedback\":{\"blockReason\":\"SAFETY\"}}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "refused",
+          "message": "The provider blocked this request."
+        }
+      }
+    },
+    {
+      "name": "relay: events, a tool call with its raw text, done",
+      "input": {
+        "provider": "lmstudio",
+        "transport": "relay",
+        "relayUrl": "https://app.example/ai-relay",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            ": open\n\nevent: status\ndata: {\"message\":\"Loading\"}\n\nevent: reasoning\ndata: {\"text\":\"R.\"}\n\nevent: delta\ndata: {\"text\":\"Hi.\"}\n\nevent: tool_call\ndata: {\"id\":\"r1\",\"name\":\"find_text\",\"arguments\":{\"query\":\"x\"},\"raw\":\"{\\\"query\\\": \\\"x\\\"}\"}\n\nevent: done\ndata: {\"usage\":{\"input\":1,\"output\":2},\"truncated\":true}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [
+          {
+            "type": "status",
+            "text": "Loading"
+          },
+          {
+            "type": "reasoning",
+            "text": "R."
+          },
+          {
+            "type": "text",
+            "text": "Hi."
+          }
+        ],
+        "result": {
+          "usage": {
+            "input": 1,
+            "output": 2
+          },
+          "toolCalls": [
+            {
+              "id": "r1",
+              "name": "find_text",
+              "arguments": {
+                "query": "x"
+              },
+              "raw": "{\"query\": \"x\"}"
+            }
+          ],
+          "truncated": true
+        }
+      }
+    },
+    {
+      "name": "relay: an error event with hints",
+      "input": {
+        "provider": "lmstudio",
+        "transport": "relay",
+        "relayUrl": "https://app.example/ai-relay",
+        "response": {
+          "contentType": "text/event-stream",
+          "chunks": [
+            "event: error\ndata: {\"code\":\"rate-limit\",\"message\":\"Too many questions.\",\"hints\":[\"Wait a minute.\"]}\n\n"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "rate-limit",
+          "message": "Too many questions.",
+          "hints": [
+            "Wait a minute."
+          ]
+        }
+      }
+    },
+    {
+      "name": "HTTP 401 with the key in the message: redacted",
+      "input": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "response": {
+          "status": 401,
+          "contentType": "application/json",
+          "chunks": [
+            "{\"error\":{\"message\":\"Incorrect API key provided: sk-test-key-123456.\",\"code\":\"invalid_api_key\"}}"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "auth",
+          "message": "HTTP 401. The provider rejected the credentials. Check the API key in Settings. Server said: \"Incorrect API key provided: [redacted].\""
+        }
+      }
+    },
+    {
+      "name": "HTTP 404 naming a model: missing-model",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "status": 404,
+          "contentType": "application/json",
+          "chunks": [
+            "{\"error\":{\"message\":\"model \\\"x\\\" not found\"}}"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "missing-model",
+          "message": "HTTP 404. The server does not have that model (or none is loaded). Pick one with \"Load models\" in Settings. Server said: \"model \"x\" not found\""
+        }
+      }
+    },
+    {
+      "name": "HTTP 404 for a path: bad-endpoint",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "status": 404,
+          "contentType": "text/plain",
+          "chunks": [
+            "Cannot POST /v1/chat/completions"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "bad-endpoint",
+          "message": "HTTP 404. That address does not offer this API. Check the base URL, the port and the provider type. Server said: \"Cannot POST /v1/chat/completions\""
+        }
+      }
+    },
+    {
+      "name": "HTTP 429: rate-limit",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "status": 429,
+          "contentType": "application/json",
+          "chunks": [
+            "{\"error\":{\"message\":\"slow down\"}}"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "rate-limit",
+          "message": "HTTP 429. The provider is rate limiting requests. Wait a moment and try again. Server said: \"slow down\""
+        }
+      }
+    },
+    {
+      "name": "HTTP 500: network",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "status": 500,
+          "contentType": "text/plain",
+          "chunks": [
+            "boom"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "network",
+          "message": "HTTP 500. The server reported an internal error. Server said: \"boom\""
+        }
+      }
+    },
+    {
+      "name": "HTTP 200 with only an error: unexpected endpoint",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "application/json",
+          "chunks": [
+            "{\"error\":\"Unexpected endpoint or method. (POST /v1/chat/completion)\"}"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "bad-endpoint",
+          "message": "That address does not offer this API. Check the base URL, the port and the provider type. Server said: \"Unexpected endpoint or method. (POST /v1/chat/completion)\""
+        }
+      }
+    },
+    {
+      "name": "neither a stream nor JSON",
+      "input": {
+        "provider": "lmstudio",
+        "response": {
+          "contentType": "text/html",
+          "chunks": [
+            "<html>Hello</html>"
+          ]
+        }
+      },
+      "output": {
+        "events": [],
+        "error": {
+          "code": "malformed",
+          "message": "The server replied, but neither as a stream nor as JSON."
+        }
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@
   "suite": "tool-arguments",
   "description": "readArguments (what the model sent, as text or object) and validateArgs (checked and coerced against the tool's parameters). The tool loop refuses a call whose read.error is set before it validates anything, so a cut-off call never runs on guessed arguments (validateArgs on its own would see an empty object). Text over maxLength is an error, never cut; arrays keep their first maxItems items.",
   "operation": "readArguments(input.raw) -> { args, error }; validateArgs(normalizeTool(input.tool), input.raw) -> { ok, args, errors }",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "object as is",

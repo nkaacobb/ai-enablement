@@ -1,0 +1,4 @@
+# Formatting of this framework-owned crate, whatever the host app's own rustfmt settings are (a vendored copy
+# reformatted by `cargo fmt --all` in the app keeps its release fingerprint).
+max_width = 120
+use_small_heuristics = "Max"

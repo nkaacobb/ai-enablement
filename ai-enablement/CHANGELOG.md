@@ -6,6 +6,81 @@ skill's version is in `package.json`; the runtime (`VERSION` in `assets/ai-agent
 (`AIA_RELAY_VERSION` / `RELAY_VERSION`) carry their own, which only change when their code does.
 `scripts/release-hashes.json` fingerprints every released runtime and relay.
 
+## 3.1.0 — the session, and the Rust core (runtime 1.7.0; relays unchanged at 1.4.0)
+
+Phase B of the multi-stack plan (`docs/ai-enablement-design.md`, §7). The JS runtime's tool loop is now a module
+without a UI, and a Rust runtime ports it. The two are held together by 8 new conformance suites, 24 in all.
+
+### Runtime 1.7.0 (additive)
+
+- **New `core/session.js`** (`AgentSession`): the agent without its UI. It owns:
+  - the active agent, its tools, skills, permissions and context layers;
+  - the system prompt and the tools of each request;
+  - the tool loop (`runModel`, `executeTool`) and the built-in tools;
+  - a question's start and end (`beginTurn`, `endTurn`);
+  - the context flag and saved chats.
+
+  It shows things through view hooks and runs headless.
+- **`ui/drawer.js` is a view over the session.** It renders the rows and cards the session asks for. A card is data,
+  `{ kind, buttons, tool, reason?, decision?, confirm? }`, and the drawer writes its question: the same text as
+  before, including the diff shown before a capability file is replaced. Nothing looks or behaves differently, and
+  the browser tests pass unchanged.
+- `ContextManager` takes an optional clock (`now`), so tests can fix the snapshot time.
+- **One visible difference:** the numbers in the agent's own notices and tool messages (the "Max reply tokens" notice,
+  `read_skill_file`'s character counts) are written as en-US (`4,096`) on every machine, as `core/tools.js` already
+  did. They used the machine's locale before.
+- The public API (`createAiAgent`, `ai-agent.d.ts`) is unchanged.
+
+### Conformance: 8 new suites, 24 in all
+
+- `request-messages`: the transcript as a request's messages.
+- `tool-set`: what one request offers, and the TOOLS text.
+- `text-tools`: text-mode tool blocks.
+- `capability-prompts`: the AGENT and SKILLS texts, and an agent's tools and skills.
+- `adapter-requests`: what each protocol sends.
+- `adapter-streams`: what each protocol reads back, with SSE edge cases and HTTP errors.
+- `execute-tool`: one call through every check and card.
+- `tool-loop`: one question with its tool rounds against a scripted model. It records every request exactly as sent.
+
+`execute-tool` and `tool-loop` drive the session through a scripted harness, which their descriptions specify so
+another runtime builds the same one. The suites live in `scripts/lib/conformance.mjs` (the pure functions) and the new
+`scripts/lib/conformance-runtime.mjs` (requests, adapters, the session). `tests/session.test.mjs` covers what the
+vectors do not: saved chats, switching agents, reset.
+
+### The Rust core: `assets/rust/ai-enablement-core` 0.1.0
+
+- **The agent without a UI**, a port of the JS core, passing all 24 suites. See `assets/rust/README.md`.
+- **Its session** runs the tool loop over two traits:
+  - `View`: rows, notices, `decide`;
+  - `ToolRunner`: the app's tools, run where the host is.
+
+  A native drawer runs a question on a worker thread and answers both from the UI thread.
+- **Host rules**: `ProviderPolicy` (any, loopback only, local only, or listed providers) and a `before_send` gate (for
+  example consent), enforced by `GuardedModel` before a request leaves the app.
+- **The capability folder** is embedded in the binary (`embedded_files!`) or read from disk.
+- **HTTP** comes from an optional ureq client.
+  - `http` serves plain http, for local servers.
+  - `tls` adds https with Mozilla's roots.
+  - `tls-platform` adds https with the operating system's certificate store, needed behind TLS-inspecting
+    antivirus.
+  - Cancelling stops a request within 50 ms, mid-stream too, and shuts the connection so the server stops
+    generating.
+- **Tested end to end**: with `--features http`, one question runs through the session, the OpenAI-compatible adapter
+  and ureq against the fake upstream. It covers a tool round, a denied tool that is never offered, and a
+  loopback-only policy that refuses a cloud provider before any request. `tests/coverage.rs` fails when a vector file
+  has no Rust runner.
+- **Dependencies** are caret ranges (serde, serde_json, regex, ryu-js). The crate never enables serde_json's
+  `preserve_order`: a host app's JSON key order stays its own.
+- `tests/fixtures/fake-upstream-cli.mjs` starts the fake upstream for a test in another language (the Rust end-to-end
+  question).
+- The `rust-egui` stack stays **planned** until the egui drawer ships (phase C). `detect.mjs` still stops before
+  installing.
+
+### Upgrading from 3.0.0
+
+1. Web apps: replace the runtime folder (it is unchanged in every app the skill installed). Nothing else changes.
+2. Release fingerprints: `scripts/release-hashes.json` has 1.7.0.
+
 ## 3.0.0 — one skill, several stacks (runtime unchanged at 1.6.1; relays unchanged at 1.4.0)
 
 The skill was written for web apps. Run on a native app, it said "INSTALL — follow the normal workflow" and would

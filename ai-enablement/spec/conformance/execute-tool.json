@@ -1,0 +1,4936 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "execute-tool",
+  "description": "One tool call from the model through the session (core/session.js executeTool), in this order: request_tool; unknown or denied; the master switch; the tool is off; not on this page; unreadable arguments; invalid arguments; the confirmation; the run. The scripted session: settings = sanitizeSettings(input.settings) (save() merges toolStates); the page { id, title, content } (content: a string; a tool with \"setContent\" replaces it when it runs) and input.app as context, snapshots stamped 2026-01-02T03:04:05.000Z; input.tools are tool definitions whose run returns \"result\" (absent: nothing), or throws Error(\"throws\") when that is set; input.agents are agent files { file, text }, input.skills skill files { folder, text } (no folder on disk), input.permissions the application policy, input.memory the starting notes (a memory store, when given), input.screen a screenshot source (true, or { needsGesture }) that returns a 1280 x 720 JPEG with id \"shot1\"; the default prompt is \"B\"; no image attachments. The user answers the cards with input.answers in order (then each card's decline; \"cancel\" also stops the question), and input.allowedForChat are the tools already allowed for this chat. Output: the result for the model, the rows the view was asked to show (title, call, the statuses in order, a label, a screenshot, an Undo), the cards (kind, button ids, tool, reason; for a confirmation the permission decision and a built-in's own confirm data), the notices, the tools that actually ran with their arguments, the tool states, screenshotAuto, the tools allowed for this chat and the memory afterwards, and the action records.",
+  "operation": "session = scripted(input); session.executeTool(input.call, { reply, signal, actions }) -> { result, rows, cards, notices, ran, toolStates, screenshotAuto, allowedForChat, memory?, actions }",
+  "reference": "assets/ai-agent 1.7.0",
+  "cases": [
+    {
+      "name": "a read tool runs without a card",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "call": {
+          "id": "call_1",
+          "name": "find_text",
+          "arguments": {
+            "query": "fox"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "find_text",
+          "content": "{\"first\":\"line 3\",\"matches\":2}",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Find text",
+            "call": "find_text(query: \"fox\")",
+            "statuses": [
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [
+          {
+            "name": "find_text",
+            "args": {
+              "query": "fox"
+            }
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "find_text(query: \"fox\")",
+            "title": "Find text",
+            "status": "ok",
+            "summary": "{\"first\":\"line 3\",\"matches\":2}",
+            "name": "find_text",
+            "detail": {
+              "args": "{\n  \"query\": \"fox\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "{\"first\":\"line 3\",\"matches\":2}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a write tool: Run",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "run"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": "14"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "Size set.",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Set size",
+            "call": "set_size(size: 14)",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "chat",
+              "skip"
+            ],
+            "tool": "set_size",
+            "decision": "",
+            "confirm": null
+          }
+        ],
+        "notices": [],
+        "ran": [
+          {
+            "name": "set_size",
+            "args": {
+              "size": 14
+            }
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "set_size(size: 14)",
+            "title": "Set size",
+            "status": "ok",
+            "summary": "Size set.",
+            "name": "set_size",
+            "detail": {
+              "args": "{\n  \"size\": 14\n}",
+              "sent": "{\n  \"size\": \"14\"\n}",
+              "problem": "",
+              "result": "Size set."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a write tool: Allow for this chat (the size is clamped)",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "chat"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": 99
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "Size set.",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Set size",
+            "call": "set_size(size: 72)",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "chat",
+              "skip"
+            ],
+            "tool": "set_size",
+            "decision": "",
+            "confirm": null
+          }
+        ],
+        "notices": [],
+        "ran": [
+          {
+            "name": "set_size",
+            "args": {
+              "size": 72
+            }
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [
+          "set_size"
+        ],
+        "actions": [
+          {
+            "call": "set_size(size: 72)",
+            "title": "Set size",
+            "status": "ok",
+            "summary": "Size set.",
+            "name": "set_size",
+            "detail": {
+              "args": "{\n  \"size\": 72\n}",
+              "sent": "{\n  \"size\": 99\n}",
+              "problem": "",
+              "result": "Size set."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a write tool already allowed for this chat",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "allowedForChat": [
+          "set_size"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": 9
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "Size set.",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Set size",
+            "call": "set_size(size: 9)",
+            "statuses": [
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [
+          {
+            "name": "set_size",
+            "args": {
+              "size": 9
+            }
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [
+          "set_size"
+        ],
+        "actions": [
+          {
+            "call": "set_size(size: 9)",
+            "title": "Set size",
+            "status": "ok",
+            "summary": "Size set.",
+            "name": "set_size",
+            "detail": {
+              "args": "{\n  \"size\": 9\n}",
+              "sent": "",
+              "problem": "",
+              "result": "Size set."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a write tool: Skip",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "skip"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": 9
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "The user declined to run set_size. Do not call it again for this request.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Set size",
+            "call": "set_size(size: 9)",
+            "statuses": [
+              "waiting",
+              "declined"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "chat",
+              "skip"
+            ],
+            "tool": "set_size",
+            "decision": "",
+            "confirm": null
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "set_size(size: 9)",
+            "title": "Set size",
+            "status": "declined",
+            "summary": "",
+            "name": "set_size",
+            "detail": {
+              "args": "{\n  \"size\": 9\n}",
+              "sent": "",
+              "problem": "",
+              "result": "The user declined to run set_size. Do not call it again for this request."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "confirmations off",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "settings": {
+          "confirmWrites": false
+        },
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": 9
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "Size set.",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Set size",
+            "call": "set_size(size: 9)",
+            "statuses": [
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [
+          {
+            "name": "set_size",
+            "args": {
+              "size": 9
+            }
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "set_size(size: 9)",
+            "title": "Set size",
+            "status": "ok",
+            "summary": "Size set.",
+            "name": "set_size",
+            "detail": {
+              "args": "{\n  \"size\": 9\n}",
+              "sent": "",
+              "problem": "",
+              "result": "Size set."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "destructive confirms; Stop while asked",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "cancel"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "delete_doc",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "delete_doc",
+          "content": "Stopped by the user.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Delete document",
+            "call": "delete_doc()",
+            "statuses": [
+              "waiting",
+              "skipped"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "skip"
+            ],
+            "tool": "delete_doc",
+            "decision": "",
+            "confirm": null
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "delete_doc()",
+            "title": "Delete document",
+            "status": "skipped",
+            "summary": "",
+            "name": "delete_doc",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "Stopped by the user."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a tool that is off: Turn on and run (no second card)",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "on"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "turned_off",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "turned_off",
+          "content": "Ran.",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Turned off",
+            "call": "turned_off()",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "turn-on",
+            "buttons": [
+              "on",
+              "off"
+            ],
+            "tool": "turned_off"
+          }
+        ],
+        "notices": [],
+        "ran": [
+          {
+            "name": "turned_off",
+            "args": {}
+          }
+        ],
+        "toolStates": {
+          "turned_off": true
+        },
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "turned_off()",
+            "title": "Turned off",
+            "status": "ok",
+            "summary": "Ran.",
+            "name": "turned_off",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "Ran."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a tool that is off: Keep off",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "off"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "turned_off",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "turned_off",
+          "content": "turned_off is turned off and the user kept it off. Do not call it again.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Turned off",
+            "call": "turned_off()",
+            "statuses": [
+              "waiting",
+              "off"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "turn-on",
+            "buttons": [
+              "on",
+              "off"
+            ],
+            "tool": "turned_off"
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "turned_off()",
+            "title": "Turned off",
+            "status": "off",
+            "summary": "",
+            "name": "turned_off",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "turned_off is turned off and the user kept it off. Do not call it again."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "request_tool: Turn on",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "on"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "request_tool",
+          "arguments": {
+            "name": "turned_off",
+            "reason": "To do what you asked."
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "request_tool",
+          "content": "The user turned on turned_off. You can call it now.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Turn on Turned off",
+            "call": "turned_off()",
+            "statuses": [
+              "waiting",
+              "ok"
+            ],
+            "label": "Turned on"
+          }
+        ],
+        "cards": [
+          {
+            "kind": "request",
+            "buttons": [
+              "on",
+              "off"
+            ],
+            "tool": "turned_off",
+            "reason": "To do what you asked."
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {
+          "turned_off": true
+        },
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "turn on turned_off",
+            "title": "Turn on Turned off",
+            "status": "ok",
+            "name": "request_tool",
+            "detail": {
+              "args": "{\n  \"name\": \"turned_off\",\n  \"reason\": \"To do what you asked.\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "The user turned on turned_off. You can call it now."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "request_tool: Keep off",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "off"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "request_tool",
+          "arguments": {
+            "name": "turned_off"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "request_tool",
+          "content": "The user kept turned_off turned off. Do not call it; explain how they can do it themselves, or that they can turn it on in Settings > Tools.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Turn on Turned off",
+            "call": "turned_off()",
+            "statuses": [
+              "waiting",
+              "off"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "request",
+            "buttons": [
+              "on",
+              "off"
+            ],
+            "tool": "turned_off"
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "turn on turned_off",
+            "title": "Turn on Turned off",
+            "status": "declined",
+            "name": "request_tool",
+            "detail": {
+              "args": "{\n  \"name\": \"turned_off\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "The user kept turned_off turned off. Do not call it; explain how they can do it themselves, or that they can turn it on in Settings > Tools."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "request_tool for a tool already on",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "call": {
+          "id": "call_1",
+          "name": "request_tool",
+          "arguments": {
+            "name": "find_text"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "request_tool",
+          "content": "find_text is already turned on: call it.",
+          "changed": false
+        },
+        "rows": [],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": []
+      }
+    },
+    {
+      "name": "request_tool for no such tool",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "call": {
+          "id": "call_1",
+          "name": "request_tool",
+          "arguments": {
+            "name": "nope"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "request_tool",
+          "content": "There is no tool named \"nope\".",
+          "changed": false
+        },
+        "rows": [],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": []
+      }
+    },
+    {
+      "name": "unknown tool",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "call": {
+          "id": "call_1",
+          "name": "nope",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "nope",
+          "content": "There is no tool named \"nope\". Use only the tools you were given.",
+          "changed": false
+        },
+        "rows": [],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": []
+      }
+    },
+    {
+      "name": "denied by the application",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "permissions": {
+          "deny": [
+            "set_*"
+          ]
+        },
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": 9
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "set_size is not permitted in this application. Do not call it; tell the user if it matters.",
+          "changed": false
+        },
+        "rows": [],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": []
+      }
+    },
+    {
+      "name": "not one of the agent's tools",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "agents": [
+          {
+            "file": "agents/reader.md",
+            "text": "---\nname: reader\ntitle: Reader\ndescription: Reads.\ntools: [find_text]\n---\nRead."
+          }
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": 9
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "set_size is not one of the Reader agent's tools. Use the tools you were given.",
+          "changed": false
+        },
+        "rows": [],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": []
+      }
+    },
+    {
+      "name": "tools switched off",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "settings": {
+          "toolsEnabled": false
+        },
+        "call": {
+          "id": "call_1",
+          "name": "find_text",
+          "arguments": {
+            "query": "x"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "find_text",
+          "content": "Tools are switched off by the user (Settings > Tools).",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Find text",
+            "call": "find_text(query: \"x\")",
+            "statuses": [
+              "off"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "find_text(query: \"x\")",
+            "title": "Find text",
+            "status": "off",
+            "summary": "",
+            "name": "find_text",
+            "detail": {
+              "args": "{\n  \"query\": \"x\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "Tools are switched off by the user (Settings > Tools)."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "not on this page",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "call": {
+          "id": "call_1",
+          "name": "chart_zoom",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "chart_zoom",
+          "content": "chart_zoom is not available on this screen (it works on: charts/*).",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Zoom chart",
+            "call": "chart_zoom()",
+            "statuses": [
+              "skipped"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "chart_zoom()",
+            "title": "Zoom chart",
+            "status": "skipped",
+            "summary": "Not available on this screen",
+            "name": "chart_zoom",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "chart_zoom is not available on this screen (it works on: charts/*)."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "unreadable arguments",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "call": {
+          "id": "call_1",
+          "name": "find_text",
+          "arguments": {},
+          "raw": "query = fox",
+          "argsError": "not valid JSON"
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "find_text",
+          "content": "Not run: the arguments could not be read (not valid JSON). Send them as one JSON object keyed by the parameter names.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Find text",
+            "call": "find_text()",
+            "statuses": [
+              "error"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "find_text()",
+            "title": "Find text",
+            "status": "error",
+            "summary": "The arguments could not be read: not valid JSON.",
+            "name": "find_text",
+            "detail": {
+              "args": "{}",
+              "sent": "query = fox",
+              "problem": "The arguments could not be read: not valid JSON.",
+              "result": "Not run: the arguments could not be read (not valid JSON). Send them as one JSON object keyed by the parameter names."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "arguments cut off at the reply limit",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "settings": {
+          "maxOutputTokens": 512
+        },
+        "call": {
+          "id": "call_1",
+          "name": "find_text",
+          "arguments": {},
+          "raw": "{\"query\": \"fo",
+          "argsError": "the JSON stops before it is closed, after 13 characters",
+          "cutOff": true
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "find_text",
+          "content": "Not run: your reply reached its length limit (512 tokens) while you were writing this call, so its arguments were cut off after 13 characters. Do the same work in several smaller calls, with less data in each, one after another.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Find text",
+            "call": "find_text()",
+            "statuses": [
+              "error"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "find_text()",
+            "title": "Find text",
+            "status": "error",
+            "summary": "Cut off: the reply reached Max reply tokens (512 tokens) after 13 characters of arguments. Raise it in Settings > Agent, or ask for less per step.",
+            "name": "find_text",
+            "detail": {
+              "args": "{}",
+              "sent": "{\"query\": \"fo",
+              "problem": "Cut off: the reply reached Max reply tokens (512 tokens) after 13 characters of arguments. Raise it in Settings > Agent, or ask for less per step.",
+              "result": "Not run: your reply reached its length limit (512 tokens) while you were writing this call, so its arguments were cut off after 13 characters. Do the same work in several smaller calls, with less data in each, one after another."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "invalid arguments",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "call": {
+          "id": "call_1",
+          "name": "find_text",
+          "arguments": {
+            "query": "a text that is far too long"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "find_text",
+          "content": "Invalid arguments: \"query\" is 27 characters long, over its limit of 20: send less in one call. Check the tool's parameters and try again.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Find text",
+            "call": "find_text()",
+            "statuses": [
+              "error"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "find_text()",
+            "title": "Find text",
+            "status": "error",
+            "summary": "\"query\" is 27 characters long, over its limit of 20: send less in one call",
+            "name": "find_text",
+            "detail": {
+              "args": "{}",
+              "sent": "{\n  \"query\": \"a text that is far too long\"\n}",
+              "problem": "Invalid arguments: \"query\" is 27 characters long, over its limit of 20: send less in one call.",
+              "result": "Invalid arguments: \"query\" is 27 characters long, over its limit of 20: send less in one call. Check the tool's parameters and try again."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ask: even a read tool confirms, without \"for this chat\"",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "permissions": {
+          "ask": [
+            "find_text"
+          ]
+        },
+        "answers": [
+          "run"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "find_text",
+          "arguments": {
+            "query": "fox"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "find_text",
+          "content": "{\"first\":\"line 3\",\"matches\":2}",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Find text",
+            "call": "find_text(query: \"fox\")",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "skip"
+            ],
+            "tool": "find_text",
+            "decision": "ask",
+            "confirm": null
+          }
+        ],
+        "notices": [],
+        "ran": [
+          {
+            "name": "find_text",
+            "args": {
+              "query": "fox"
+            }
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "find_text(query: \"fox\")",
+            "title": "Find text",
+            "status": "ok",
+            "summary": "{\"first\":\"line 3\",\"matches\":2}",
+            "name": "find_text",
+            "detail": {
+              "args": "{\n  \"query\": \"fox\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "{\"first\":\"line 3\",\"matches\":2}"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "allow: a write tool runs without a card",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "permissions": {
+          "allow": [
+            "effect:write"
+          ]
+        },
+        "call": {
+          "id": "call_1",
+          "name": "set_size",
+          "arguments": {
+            "size": 9
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "set_size",
+          "content": "Size set.",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Set size",
+            "call": "set_size(size: 9)",
+            "statuses": [
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [
+          {
+            "name": "set_size",
+            "args": {
+              "size": 9
+            }
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "set_size(size: 9)",
+            "title": "Set size",
+            "status": "ok",
+            "summary": "Size set.",
+            "name": "set_size",
+            "detail": {
+              "args": "{\n  \"size\": 9\n}",
+              "sent": "",
+              "problem": "",
+              "result": "Size set."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "system always confirms, even allowed",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "permissions": {
+          "allow": [
+            "write_code"
+          ]
+        },
+        "answers": [
+          "run"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "write_code",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "write_code",
+          "content": "Written.",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Write code",
+            "call": "write_code()",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "skip"
+            ],
+            "tool": "write_code",
+            "decision": "allow",
+            "confirm": null
+          }
+        ],
+        "notices": [],
+        "ran": [
+          {
+            "name": "write_code",
+            "args": {}
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "write_code()",
+            "title": "Write code",
+            "status": "ok",
+            "summary": "Written.",
+            "name": "write_code",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "Written."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "the tool throws",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "answers": [
+          "run"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "broken",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "broken",
+          "content": "Error: the disk is full",
+          "changed": true
+        },
+        "rows": [
+          {
+            "title": "Broken",
+            "call": "broken()",
+            "statuses": [
+              "waiting",
+              "running",
+              "error"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "chat",
+              "skip"
+            ],
+            "tool": "broken",
+            "decision": "",
+            "confirm": null
+          }
+        ],
+        "notices": [],
+        "ran": [
+          {
+            "name": "broken",
+            "args": {}
+          }
+        ],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "broken()",
+            "title": "Broken",
+            "status": "error",
+            "summary": "the disk is full",
+            "name": "broken",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "Error: the disk is full"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "memory: remember (read, no card, an Undo)",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "memory": [
+          {
+            "id": "m1",
+            "text": "Units are mm."
+          }
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "remember",
+          "arguments": {
+            "text": "Ctrl+S saves."
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "remember",
+          "content": "Saved as memory m2.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Remember",
+            "call": "remember(text: \"Ctrl+S saves.\")",
+            "statuses": [
+              "running",
+              "ok"
+            ],
+            "label": "Saved",
+            "undo": true
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "memory": [
+          {
+            "id": "m1",
+            "text": "Units are mm."
+          },
+          {
+            "id": "m2",
+            "text": "Ctrl+S saves."
+          }
+        ],
+        "actions": [
+          {
+            "call": "remember(text: \"Ctrl+S saves.\")",
+            "title": "Remember",
+            "status": "ok",
+            "summary": "Ctrl+S saves.",
+            "name": "remember",
+            "detail": {
+              "args": "{\n  \"text\": \"Ctrl+S saves.\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "Saved as memory m2."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "memory: remember what is already saved",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "memory": [
+          {
+            "id": "m1",
+            "text": "Units are mm."
+          }
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "remember",
+          "arguments": {
+            "text": "units are MM."
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "remember",
+          "content": "That is already saved (memory m1).",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Remember",
+            "call": "remember(text: \"units are MM.\")",
+            "statuses": [
+              "running",
+              "ok"
+            ],
+            "label": "Already saved"
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "memory": [
+          {
+            "id": "m1",
+            "text": "Units are mm."
+          }
+        ],
+        "actions": [
+          {
+            "call": "remember(text: \"units are MM.\")",
+            "title": "Remember",
+            "status": "ok",
+            "summary": "Units are mm.",
+            "name": "remember",
+            "detail": {
+              "args": "{\n  \"text\": \"units are MM.\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "That is already saved (memory m1)."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "memory: forget asks, with the note",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "memory": [
+          {
+            "id": "m1",
+            "text": "Units are mm."
+          }
+        ],
+        "answers": [
+          "run"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "forget",
+          "arguments": {
+            "id": "m1"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "forget",
+          "content": "Deleted memory m1.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Forget",
+            "call": "forget(id: \"m1\")",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ],
+            "label": "Deleted",
+            "undo": true
+          }
+        ],
+        "cards": [
+          {
+            "kind": "confirm",
+            "buttons": [
+              "run",
+              "chat",
+              "skip"
+            ],
+            "tool": "forget",
+            "decision": "",
+            "confirm": {
+              "kind": "memory-delete",
+              "id": "m1",
+              "text": "Units are mm."
+            }
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "memory": [],
+        "actions": [
+          {
+            "call": "forget(id: \"m1\")",
+            "title": "Forget",
+            "status": "ok",
+            "summary": "Units are mm.",
+            "name": "forget",
+            "detail": {
+              "args": "{\n  \"id\": \"m1\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "Deleted memory m1."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "memory: a denied built-in is unknown",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "memory": [],
+        "permissions": {
+          "deny": [
+            "remember"
+          ]
+        },
+        "call": {
+          "id": "call_1",
+          "name": "remember",
+          "arguments": {
+            "text": "x"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "remember",
+          "content": "remember is not permitted in this application. Do not call it; tell the user if it matters.",
+          "changed": false
+        },
+        "rows": [],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "memory": [],
+        "actions": []
+      }
+    },
+    {
+      "name": "screenshot: not freed to look: Allow once",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "screen": true,
+        "answers": [
+          "once"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "take_screenshot",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "take_screenshot",
+          "content": "Screenshot taken (1280 × 720 px). It is attached: use what you see in it.",
+          "changed": false,
+          "images": [
+            {
+              "mime": "image/jpeg",
+              "data": "QUJDREVGR0hJSktMTU5PUA=="
+            }
+          ]
+        },
+        "rows": [
+          {
+            "title": "Take screenshot",
+            "call": "take_screenshot()",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ],
+            "shot": "shot1"
+          }
+        ],
+        "cards": [
+          {
+            "kind": "look",
+            "buttons": [
+              "once",
+              "always",
+              "no"
+            ]
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "take_screenshot()",
+            "title": "Take screenshot",
+            "status": "ok",
+            "summary": "1280 × 720 px",
+            "name": "take_screenshot",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "Screenshot taken (1280 × 720 px). It is attached: use what you see in it."
+            },
+            "thumb": "data:image/jpeg;base64,QUJD",
+            "shot": "shot1"
+          }
+        ]
+      }
+    },
+    {
+      "name": "screenshot: not freed to look: No",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "screen": true,
+        "answers": [
+          "no"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "take_screenshot",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "take_screenshot",
+          "content": "The user did not allow a screenshot. Do not ask again for this request: work from the page snapshot, or ask the user to describe what they see.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Take screenshot",
+            "call": "take_screenshot()",
+            "statuses": [
+              "waiting",
+              "declined"
+            ]
+          }
+        ],
+        "cards": [
+          {
+            "kind": "look",
+            "buttons": [
+              "once",
+              "always",
+              "no"
+            ]
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "take_screenshot()",
+            "title": "Take screenshot",
+            "status": "declined",
+            "summary": "The user did not allow a screenshot. Do not ask again for this request: work from the page snapshot, or ask the user to describe what they see.",
+            "name": "take_screenshot",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "The user did not allow a screenshot. Do not ask again for this request: work from the page snapshot, or ask the user to describe what they see."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "screenshot: Always allow frees it",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "screen": true,
+        "answers": [
+          "always"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "request_tool",
+          "arguments": {
+            "name": "take_screenshot"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "request_tool",
+          "content": "Screenshot taken (1280 × 720 px). It is attached: use what you see in it.",
+          "changed": false,
+          "images": [
+            {
+              "mime": "image/jpeg",
+              "data": "QUJDREVGR0hJSktMTU5PUA=="
+            }
+          ]
+        },
+        "rows": [
+          {
+            "title": "Take screenshot",
+            "call": "take_screenshot()",
+            "statuses": [
+              "waiting",
+              "running",
+              "ok"
+            ],
+            "shot": "shot1"
+          }
+        ],
+        "cards": [
+          {
+            "kind": "look",
+            "buttons": [
+              "once",
+              "always",
+              "no"
+            ]
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": true,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "take_screenshot()",
+            "title": "Take screenshot",
+            "status": "ok",
+            "summary": "1280 × 720 px",
+            "name": "take_screenshot",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "Screenshot taken (1280 × 720 px). It is attached: use what you see in it."
+            },
+            "thumb": "data:image/jpeg;base64,QUJD",
+            "shot": "shot1"
+          }
+        ]
+      }
+    },
+    {
+      "name": "screenshot: freed, with the gesture card",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "screen": {
+          "needsGesture": true
+        },
+        "settings": {
+          "screenshotAuto": true
+        },
+        "answers": [
+          "share"
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "take_screenshot",
+          "arguments": {}
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "take_screenshot",
+          "content": "Screenshot taken (1280 × 720 px). It is attached: use what you see in it.",
+          "changed": false,
+          "images": [
+            {
+              "mime": "image/jpeg",
+              "data": "QUJDREVGR0hJSktMTU5PUA=="
+            }
+          ]
+        },
+        "rows": [
+          {
+            "title": "Take screenshot",
+            "call": "take_screenshot()",
+            "statuses": [
+              "running",
+              "waiting",
+              "running",
+              "ok"
+            ],
+            "shot": "shot1"
+          }
+        ],
+        "cards": [
+          {
+            "kind": "share-tab",
+            "buttons": [
+              "share",
+              "no"
+            ]
+          }
+        ],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": true,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "take_screenshot()",
+            "title": "Take screenshot",
+            "status": "ok",
+            "summary": "1280 × 720 px",
+            "name": "take_screenshot",
+            "detail": {
+              "args": "{}",
+              "sent": "",
+              "problem": "",
+              "result": "Screenshot taken (1280 × 720 px). It is attached: use what you see in it."
+            },
+            "thumb": "data:image/jpeg;base64,QUJD",
+            "shot": "shot1"
+          }
+        ]
+      }
+    },
+    {
+      "name": "skills: use_skill",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "skills": [
+          {
+            "folder": "proofreading",
+            "text": "---\nname: proofreading\ndescription: Proofread.\nallowed-tools: find_text set_size turned_off\n---\nRead, then fix."
+          }
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "use_skill",
+          "arguments": {
+            "name": "proofreading"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "use_skill",
+          "content": "The skill \"proofreading\" is active: its instructions are now in your system prompt, under == SKILL: proofreading (active) ==. Follow them. Tools it uses: find_text (on), set_size (on), turned_off (turned off — ask with request_tool if you need it).",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Use skill",
+            "call": "use_skill(name: \"proofreading\")",
+            "statuses": [
+              "running",
+              "ok"
+            ],
+            "label": "Loaded"
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "use_skill(name: \"proofreading\")",
+            "title": "Use skill",
+            "status": "ok",
+            "summary": "Proofread.",
+            "name": "use_skill",
+            "detail": {
+              "args": "{\n  \"name\": \"proofreading\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "The skill \"proofreading\" is active: its instructions are now in your system prompt, under == SKILL: proofreading (active) ==. Follow them. Tools it uses: find_text (on), set_size (on), turned_off (turned off — ask with request_tool if you need it)."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "skills: no such skill",
+      "input": {
+        "tools": [
+          {
+            "name": "find_text",
+            "title": "Find text",
+            "description": "Find text.",
+            "effect": "read",
+            "enabled": true,
+            "parameters": {
+              "query": {
+                "type": "string",
+                "required": true,
+                "maxLength": 20
+              }
+            },
+            "result": {
+              "matches": 2,
+              "first": "line 3"
+            }
+          },
+          {
+            "name": "set_size",
+            "title": "Set size",
+            "description": "Font size.",
+            "effect": "write",
+            "enabled": true,
+            "parameters": {
+              "size": {
+                "type": "integer",
+                "min": 8,
+                "max": 72,
+                "required": true
+              }
+            },
+            "result": "Size set."
+          },
+          {
+            "name": "delete_doc",
+            "title": "Delete document",
+            "description": "Delete.",
+            "effect": "destructive",
+            "enabled": true,
+            "result": null
+          },
+          {
+            "name": "turned_off",
+            "title": "Turned off",
+            "description": "Off by default.",
+            "effect": "write",
+            "result": "Ran."
+          },
+          {
+            "name": "broken",
+            "title": "Broken",
+            "description": "Throws.",
+            "effect": "write",
+            "enabled": true,
+            "throws": "the disk is full"
+          },
+          {
+            "name": "chart_zoom",
+            "title": "Zoom chart",
+            "description": "Zoom.",
+            "effect": "write",
+            "enabled": true,
+            "pages": [
+              "charts/*"
+            ]
+          },
+          {
+            "name": "write_code",
+            "title": "Write code",
+            "description": "Changes the app.",
+            "effect": "system",
+            "enabled": true,
+            "result": "Written."
+          }
+        ],
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "The quick brown fox."
+        },
+        "skills": [
+          {
+            "folder": "proofreading",
+            "text": "---\nname: proofreading\ndescription: Proofread.\nallowed-tools: find_text set_size turned_off\n---\nRead, then fix."
+          }
+        ],
+        "call": {
+          "id": "call_1",
+          "name": "use_skill",
+          "arguments": {
+            "name": "nope"
+          }
+        }
+      },
+      "output": {
+        "result": {
+          "id": "call_1",
+          "name": "use_skill",
+          "content": "There is no skill named \"nope\". The skills you can use: proofreading.",
+          "changed": false
+        },
+        "rows": [
+          {
+            "title": "Use skill",
+            "call": "use_skill(name: \"nope\")",
+            "statuses": [
+              "running",
+              "error"
+            ]
+          }
+        ],
+        "cards": [],
+        "notices": [],
+        "ran": [],
+        "toolStates": {},
+        "screenshotAuto": false,
+        "allowedForChat": [],
+        "actions": [
+          {
+            "call": "use_skill(name: \"nope\")",
+            "title": "Use skill",
+            "status": "error",
+            "summary": "There is no skill named \"nope\". The skills you can use: proofreading.",
+            "name": "use_skill",
+            "detail": {
+              "args": "{\n  \"name\": \"nope\"\n}",
+              "sent": "",
+              "problem": "",
+              "result": "There is no skill named \"nope\". The skills you can use: proofreading."
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

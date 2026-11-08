@@ -15,6 +15,7 @@ import { parseFrontmatter } from '../../assets/ai-agent/core/frontmatter.js';
 import { parseSkill, skillFilePath, parseSlashCommand } from '../../assets/ai-agent/core/skills.js';
 import { parseAgent, pickAgent } from '../../assets/ai-agent/core/agents.js';
 import { parseMemoryFile, buildMemoryPrompt, memoryText } from '../../assets/ai-agent/core/memory.js';
+import { RUNTIME_SUITES } from './conformance-runtime.mjs';
 
 const noRun = () => undefined;
 /** A tool contract without its functions, as JSON. */
@@ -309,6 +310,8 @@ export const SUITES = [
       return parseMemoryFile(json, { now: () => Date.parse('2026-06-01T00:00:00.000Z') });
     },
   },
+  // The runtime's moving parts: request messages, tool sets, text mode, prompts, adapters, the session.
+  ...RUNTIME_SUITES,
 ];
 
 /** Run one suite over its cases (or over cases read back from a vector file). */

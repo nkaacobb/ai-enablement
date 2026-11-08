@@ -3,7 +3,7 @@
   "suite": "describe",
   "description": "describe: how app and page context objects become prompt text: \"Humanized Key: value\" lines, lists as \"- \" bullets under their key, nested objects as JSON, empty values left out.",
   "operation": "describe(input.value) -> string",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "app context",

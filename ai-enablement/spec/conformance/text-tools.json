@@ -1,0 +1,195 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "text-tools",
+  "description": "Text mode, for models without native tool calls: parseTextToolCalls finds ```tool / tool_call / tool-call / tool_code blocks holding {\"name\",\"arguments\"} (also \"tool\"/\"function\" and \"args\"/\"parameters\"/\"input\"), numbers the calls idPrefix1, idPrefix2…, and returns the text without them. An unclosed block is text, unless the reply was cut off (then it is the call being written, with its argsError). textTurnMessages: the tool exchange as plain messages, the results inside <tool_results>.",
+  "operation": "parseTextToolCalls(input.text, input.idPrefix, { cutOff: input.cutOff }) -> { calls, text }; textTurnMessages(input.toolTurns) -> messages",
+  "reference": "assets/ai-agent 1.7.0",
+  "cases": [
+    {
+      "name": "one block after text",
+      "input": {
+        "text": "Let me look.\n\n```tool\n{\"name\": \"find_text\", \"arguments\": {\"query\": \"fox\"}}\n```",
+        "idPrefix": "t0_"
+      },
+      "output": {
+        "calls": [
+          {
+            "id": "t0_1",
+            "name": "find_text",
+            "arguments": {
+              "query": "fox"
+            },
+            "raw": "{\"name\": \"find_text\", \"arguments\": {\"query\": \"fox\"}}"
+          }
+        ],
+        "text": "Let me look."
+      }
+    },
+    {
+      "name": "two blocks, other tags and keys",
+      "input": {
+        "text": "```tool_call\n{\"tool\": \"a\", \"args\": {\"x\": 1}}\n```\nand\n```TOOL-CALL\n{\"function\": \"b\", \"parameters\": {\"y\": \"z\"}}\n```",
+        "idPrefix": "t1_"
+      },
+      "output": {
+        "calls": [
+          {
+            "id": "t1_1",
+            "name": "a",
+            "arguments": {
+              "x": 1
+            },
+            "raw": "{\"tool\": \"a\", \"args\": {\"x\": 1}}"
+          },
+          {
+            "id": "t1_2",
+            "name": "b",
+            "arguments": {
+              "y": "z"
+            },
+            "raw": "{\"function\": \"b\", \"parameters\": {\"y\": \"z\"}}"
+          }
+        ],
+        "text": "and"
+      }
+    },
+    {
+      "name": "a code block that is not a tool",
+      "input": {
+        "text": "Example:\n```js\nconst a = 1;\n```",
+        "idPrefix": "t0_"
+      },
+      "output": {
+        "calls": [],
+        "text": "Example:\n```js\nconst a = 1;\n```"
+      }
+    },
+    {
+      "name": "unclosed block, not cut off: text",
+      "input": {
+        "text": "Here:\n```tool\n{\"name\": \"find_text\", \"arguments\": {\"query\": \"fo",
+        "idPrefix": "t0_"
+      },
+      "output": {
+        "calls": [],
+        "text": "Here:\n{\"name\": \"find_text\", \"arguments\": {\"query\": \"fo"
+      }
+    },
+    {
+      "name": "unclosed block, cut off: the call with its error",
+      "input": {
+        "text": "Here:\n```tool\n{\"name\": \"find_text\", \"arguments\": {\"query\": \"fo",
+        "idPrefix": "t0_",
+        "cutOff": true
+      },
+      "output": {
+        "calls": [
+          {
+            "id": "t0_1",
+            "name": "find_text",
+            "arguments": {},
+            "raw": "{\"name\": \"find_text\", \"arguments\": {\"query\": \"fo",
+            "argsError": "the JSON stops before it is closed, after 48 characters"
+          }
+        ],
+        "text": "Here:"
+      }
+    },
+    {
+      "name": "no name: not a call",
+      "input": {
+        "text": "```tool\n{\"arguments\": {}}\n```",
+        "idPrefix": "t0_"
+      },
+      "output": {
+        "calls": [],
+        "text": ""
+      }
+    },
+    {
+      "name": "the exchange as messages",
+      "input": {
+        "toolTurns": [
+          {
+            "text": "Looking.",
+            "calls": [
+              {
+                "id": "t0_1",
+                "name": "find_text",
+                "arguments": {
+                  "query": "fox"
+                }
+              }
+            ],
+            "results": [
+              {
+                "id": "t0_1",
+                "name": "find_text",
+                "content": "Found 2."
+              }
+            ]
+          },
+          {
+            "text": "",
+            "calls": [
+              {
+                "id": "t1_1",
+                "name": "a",
+                "arguments": {}
+              },
+              {
+                "id": "t1_2",
+                "name": "b",
+                "arguments": {
+                  "y": 1
+                }
+              }
+            ],
+            "results": [
+              {
+                "id": "t1_1",
+                "name": "a",
+                "content": "Done."
+              },
+              {
+                "id": "t1_2",
+                "name": "b",
+                "content": "Error: no.",
+                "images": [
+                  {
+                    "mime": "image/png",
+                    "data": "QUJDREVGR0hJSktMTU5PUA=="
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "output": [
+        {
+          "role": "assistant",
+          "content": "Looking.\n\n```tool\n{\"name\":\"find_text\",\"arguments\":{\"query\":\"fox\"}}\n```"
+        },
+        {
+          "role": "user",
+          "content": "<tool_results>\nfind_text: Found 2.\n</tool_results>"
+        },
+        {
+          "role": "assistant",
+          "content": "```tool\n{\"name\":\"a\",\"arguments\":{}}\n```\n```tool\n{\"name\":\"b\",\"arguments\":{\"y\":1}}\n```"
+        },
+        {
+          "role": "user",
+          "content": "<tool_results>\na: Done.\n\nb: Error: no.\n</tool_results>",
+          "images": [
+            {
+              "mime": "image/png",
+              "data": "QUJDREVGR0hJSktMTU5PUA=="
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

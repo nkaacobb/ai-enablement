@@ -3,7 +3,7 @@
   "suite": "agents",
   "description": "Agent files (Markdown + YAML frontmatter): fields, defaults (omitted lists = all), context layers, memory modes, limits; which agent starts.",
   "operation": "parseAgent(input.text, { file: input.file }) -> { agent, problems }; pickAgent(agents, wanted) -> name",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "full agent",

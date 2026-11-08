@@ -1,0 +1,28 @@
+[package]
+name = "ai-enablement-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+publish = false
+description = "AI Enablement core: the portable behaviour of the in-app AI agent (context sync, prompts, tools, permissions, skills, agents, memory) without UI. Conforms to the JS reference runtime through the shared conformance vectors."
+
+[dependencies]
+# Caret ranges on purpose: a vendored copy resolves to the versions the host app already locks.
+# Never enable serde_json's "preserve_order" feature (feature unification would change the host app's JSON key
+# order); key order is kept by this crate's own json::Value.
+serde = { version = "1.0.200", features = ["derive"] }
+serde_json = "1.0.100"
+regex = "1.10"
+ryu-js = "1.0"
+# The HTTP client (feature "http"). 3.5 is the first release with a per-read timeout and Agent::shutdown.
+ureq = { version = "3.5", optional = true, default-features = false }
+
+[features]
+default = []
+# http::UreqClient, the blocking HTTP client of the adapters (plain http: local servers).
+http = ["dep:ureq"]
+# https for http::UreqClient (rustls, trusting Mozilla's webpki roots).
+tls = ["http", "ureq/rustls"]
+# https trusting the operating system's certificate store (needed behind TLS-inspecting antivirus or proxies).
+tls-platform = ["tls", "ureq/platform-verifier"]

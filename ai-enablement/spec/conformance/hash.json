@@ -3,7 +3,7 @@
   "suite": "hash",
   "description": "hashText: cyrb53 over the UTF-16 code units of the text, 53 bits, as 14 lowercase hex digits; shortHash: the first 7. The screen fingerprint and every hash shown to the user.",
   "operation": "hashText(input.text) -> { hash, short }",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "empty",

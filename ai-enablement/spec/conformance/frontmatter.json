@@ -3,7 +3,7 @@
   "suite": "frontmatter",
   "description": "The YAML subset of skill and agent frontmatter: scalars, flow and block lists, nested mappings, quoted strings, comments; what it cannot read is reported, never guessed.",
   "operation": "parseFrontmatter(input.text) -> { data, body, errors }",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "scalars and lists",

@@ -3,7 +3,7 @@
   "suite": "context-snapshot",
   "description": "ContextManager.snapshot: the content hook serialised (a string as written; { text } alone as its text; anything else as stableStringify with indent 2), clipped at maxChars (keep max-160 chars and add the truncation note), fingerprinted over \"pageId\\npageTitle\\nFULL text\" before clipping. Output without the clock (\"at\").",
   "operation": "new ContextManager({ page: input.page, maxChars: input.maxChars }).snapshot() -> { pageId, pageTitle, text, chars, totalChars, truncated, hash, empty }",
-  "reference": "assets/ai-agent 1.6.1",
+  "reference": "assets/ai-agent 1.7.0",
   "cases": [
     {
       "name": "string content",

@@ -29,7 +29,7 @@ the agent:
 | Stack | Apps | Status |
 | --- | --- | --- |
 | `web` | HTML, PHP, React, Vue, Svelte, Angular, Next.js; **Tauri** (a webview over Rust); **ASP.NET Core / Blazor** (HTML from C#) | supported: the JS runtime |
-| `rust-egui` | native Rust desktop apps with egui / eframe | planned: a Rust runtime (core + egui drawer) |
+| `rust-egui` | native Rust desktop apps with egui / eframe | planned: the Rust core is in (3.1, `assets/rust/`); the egui drawer is next |
 | `dotnet-winforms` | native C# desktop apps with Windows Forms | planned: a .NET runtime (core + WinForms panel) |
 
 What the AI can do lives in the app's `ai/` folder, in the same format on every stack: skills, agents, toolsets,
@@ -172,13 +172,16 @@ ai-enablement/
   CHANGELOG.md             what changed per version, with upgrade notes for apps
   agents/openai.yaml       Codex display metadata
   assets/ai-agent/         the runtime (copied into apps unchanged): ai-agent.js · ai-agent.css · ai-agent.d.ts
-    core/                  context, sync, hashing, prompt, settings, providers, client, transport, relay probe, tools,
-                           memory, attachments (files · bytes · pdf · office), and the framework layer: capabilities ·
+    core/                  session (the agent without its UI: the tool loop, built-ins, saved chats), context, sync,
+                           hashing, prompt, settings, providers, client, transport, relay probe, tools, memory,
+                           attachments (files · bytes · pdf · office), and the framework layer: capabilities ·
                            agents · skills · permissions · schema (JSON Schema, MCP) · frontmatter · workspace
     adapters/              openai-chat (LM Studio/Ollama/OpenAI/DeepSeek/OpenRouter/custom), anthropic, gemini, relay
-    ui/                    drawer (agent picker, tool loop, built-in tools), settings modal, markdown, resize, dialogs,
-                           layout check, screenshot capture
+    ui/                    drawer (a view over the session: rows, cards, agent picker), settings modal, markdown,
+                           resize, dialogs, layout check, screenshot capture
     skills/create-tool/    the built-in skill for in-app authoring
+  assets/rust/             the Rust runtime: ai-enablement-core (the agent without a UI, passing every conformance
+                           vector); the egui drawer comes next
   assets/relay/            relay.php (PHP 8.1+) · relay.mjs (Node) · relay.config.example.php — copied unchanged
   assets/templates/        index.json, a tool module, a toolset, a SKILL.md, an agent file, the manifest
   examples/hello-world/    the demo: app.js (the editor) · ai-agent-setup.js (the integration) · content.js (pure, tested)

@@ -233,11 +233,35 @@ already two things that nothing named:
   output.
 - No runtime change.
 
+**Delivered in 3.1.0 (phase B).**
+
+- **The session out of the drawer.** `core/session.js` (runtime 1.7.0, additive) owns the active agent, the request,
+  the tool loop, the built-ins and saved chats. The drawer is a view over it. Cards are data, `{ kind, buttons, tool,
+  confirm }`, and the drawer writes their questions. The public API is unchanged, and the browser tests pass
+  unchanged.
+- **8 new conformance suites**, 24 in all: `request-messages`, `tool-set`, `text-tools`, `capability-prompts`,
+  `adapter-requests`, `adapter-streams`, `execute-tool` and `tool-loop`. The last two drive the session through a
+  scripted harness: scripted tools, model and clicks, and a fixed clock. `tool-loop` records every request exactly as
+  sent, so the neutral request is the contract between a session and its adapters.
+- **`assets/rust/ai-enablement-core`**, which passes all 24 suites.
+  - The tool loop is straight-line code over two traits: `View` (its `decide` may block) and `ToolRunner` (runs
+    the app's tools where the host is). A drawer runs a question on a worker thread and answers both from the UI
+    thread, so tool handlers keep `&mut Host` without locks, and the session is not generic over the host.
+  - Host rules: `ProviderPolicy` and a `before_send` gate, via `GuardedModel`.
+  - The capability folder: embedded with `embedded_files!`, or read from disk.
+  - HTTP behind cargo features (ureq): `http`, `tls`, and `tls-platform` for TLS-inspecting antivirus.
+  - Exit met: `cargo test` runs every vector (`tests/coverage.rs` keeps it so), and with `--features http` a question
+    with a tool round runs over HTTP against `tests/fixtures/fake-upstream.mjs` (through `fake-upstream-cli.mjs`).
+  - The crate keeps JSON key order itself and never enables serde_json's `preserve_order`: feature unification
+    would reorder the host app's JSON, and KAROS hashes canonical JSON.
+- Not yet: release fingerprints for the Rust family (with the first installable release, phase C), and in-app
+  authoring on native stacks (phase F).
+
 **Next.**
 
 | Phase | What | Exit |
 | --- | --- | --- |
-| B | **Rust core** (`assets/rust/ai-enablement-core`): context sync, prompt, tool registry and argument validation, permissions, the capability loader (embedded or disk), skills, agents, memory, the OpenAI-compatible adapter, storage and policy traits; then Anthropic and Gemini. Starts by extracting the tool loop from `ui/drawer.js` into a DOM-free `core/session.js` (runtime 1.7.0, additive), and by adding vectors for adapters, request messages and tool-loop decisions. | `cargo test` passes every vector; the tool loop runs against `tests/fixtures/fake-upstream.mjs`. |
+| B ✓ | **Rust core** (`assets/rust/ai-enablement-core`), delivered in 3.1.0: context sync, prompt, tool registry and argument validation, permissions, the capability loader (embedded or disk), skills, agents, memory, the OpenAI-compatible adapter, storage and policy traits; then Anthropic and Gemini. Starts by extracting the tool loop from `ui/drawer.js` into a DOM-free `core/session.js` (runtime 1.7.0, additive), and by adding vectors for adapters, request messages and tool-loop decisions. | `cargo test` passes every vector; the tool loop runs against `tests/fixtures/fake-upstream.mjs`. |
 | C | **egui drawer** (`ai-enablement-egui`) and `examples/hello-world-egui` (the same `ai/` skills and agents, Rust tools). The rust-egui recipe goes from planned to supported (detect flips it automatically when `assets/rust/ai-enablement-egui/Cargo.toml` exists). | A kittest flow at 1920×1080; live with LM Studio. |
 | D | **KAROS pilot**, after its spec decision: a context-only assistant, or an amendment allowing in-app read tools plus proposal-based writes. | `cargo test --workspace`; the drawer screenshot reviewed. |
 | E | **.NET core + WinForms panel**, against the same vectors. | `dotnet test`; the example maximised at 1920×1080. |

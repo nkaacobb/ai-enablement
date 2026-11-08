@@ -1,0 +1,5 @@
+# For developing the skill's crates. A vendored copy builds with the host app's own toolchain.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

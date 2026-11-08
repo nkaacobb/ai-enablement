@@ -4,7 +4,9 @@ This is the product, independent of language and UI. The JS runtime (`assets/ai-
 implementation; a runtime for another stack (Rust, .NET) is "the same agent" when it does everything below and passes
 the conformance vectors (`spec/conformance/`). Formats are in `framework.md`; the context-sync protocol in full is in
 `context-sync.md`. Where this file names a JS module, that module is the authority when they disagree. Fix this file
-when that happens.
+when that happens. What the agent does — the active agent, the request, the tool loop with its cards, the built-ins,
+saved chats — is one DOM-free module, `core/session.js`; the drawer only renders it, and a native runtime ports it
+with its own view.
 
 Numbers are defaults. Settings ranges are given as `default (min–max)`.
 
@@ -97,7 +99,7 @@ Objects are rendered as `Humanized Key: value` lines and lists as `- ` bullets.
     - Arrays: at most `maxItems` (100); `minItems` is checked.
   - **JSON Schema input**: `$ref`, `oneOf`, `anyOf`, `allOf`, `not`, `if`, `patternProperties`, object properties,
     tuples, arrays of arrays and multi-type unions (except `[T, null]`) are **refused with the reason**, never loosened.
-- **Executing a call**, in this order (`executeTool`):
+- **Executing a call**, in this order (`executeTool` in `core/session.js`; the `execute-tool` vectors):
   1. `request_tool` → card *Turn on* / *Keep off*.
   2. Unknown or denied tool → the reason goes back to the model.
   3. The master switch is off → refused.
@@ -107,6 +109,11 @@ Objects are rendered as `Humanized Key: value` lines and lists as `- ` bullets.
   7. Validation errors → back to the model.
   8. Precheck.
   9. Confirmation (§4) → card *Run* / *Allow for this chat* (write tools only, unless the rule is `ask`) / *Skip*.
+
+  A card is data: `{ kind, buttons: [{ id, label, primary? }], tool, reason?, decision?, confirm? }` with the kinds
+  `request`, `turn-on`, `confirm`, `look` and `share-tab` and fixed button ids (`on`/`off`, `run`/`chat`/`skip`,
+  `once`/`always`/`no`, `share`/`no`; `cancel` when the question is stopped). The view writes the question; a
+  built-in's `confirm` data says what to show (the memory to delete; the file to write, and what it replaces).
   10. Run with its timeout.
   11. Serialise the result.
 - **Fixed messages** to the model:
@@ -115,7 +122,7 @@ Objects are rendered as `Humanized Key: value` lines and lists as `- ` bullets.
   - `Error: <message>`
 - **Results**: undefined / null / true → `Done.`; strings as written; anything else as compact stable JSON. Capped at
   4,000 characters with a note.
-- **Loop**:
+- **Loop** (`runModel`; the `tool-loop` vectors record every request it sends):
   - Calls run **sequentially**.
   - At most `min(maxToolSteps 8 (1–30), agent.maxToolSteps)` rounds, with a hard cap of 64.
   - Only the current question carries the provider-native tool exchange. Earlier assistant turns are prefixed
