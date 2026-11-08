@@ -1,0 +1,157 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "skills",
+  "description": "Agent Skills: SKILL.md parsed and checked (name = folder, lowercase-hyphen, description required, body required, allowed-tools read as information); safe skill file paths; /name commands.",
+  "operation": "parseSkill(input.text, { folder: input.folder }) -> { skill (base left out), problems }; skillFilePath(path); parseSlashCommand(text, names)",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "valid skill",
+      "input": {
+        "folder": "proofreading",
+        "text": "---\nname: proofreading\ndescription: Proofread the document. Use when asked to check the text.\nallowed-tools: find_text replace_text\nlicense: MIT\n---\n# Proofreading\n1. Read.\n2. Fix."
+      },
+      "output": {
+        "skill": {
+          "name": "proofreading",
+          "description": "Proofread the document. Use when asked to check the text.",
+          "body": "# Proofreading\n1. Read.\n2. Fix.",
+          "source": "app",
+          "license": "MIT",
+          "allowedTools": [
+            "find_text",
+            "replace_text"
+          ]
+        },
+        "problems": []
+      }
+    },
+    {
+      "name": "name differs from folder",
+      "input": {
+        "folder": "proof",
+        "text": "---\nname: proofreading\ndescription: d\n---\nBody"
+      },
+      "output": {
+        "skill": {
+          "name": "proofreading",
+          "description": "d",
+          "body": "Body",
+          "source": "app",
+          "allowedTools": []
+        },
+        "problems": [
+          "the folder is \"proof\" but the name is \"proofreading\"; the format wants them equal."
+        ]
+      }
+    },
+    {
+      "name": "bad name and missing description",
+      "input": {
+        "folder": "Bad_Name",
+        "text": "---\nname: Bad_Name\n---\nBody"
+      },
+      "output": {
+        "skill": null,
+        "problems": [
+          "name \"Bad_Name\" must be 1-64 lowercase letters, digits and single hyphens (not at the start or end).",
+          "description is missing: it is what the model reads to decide when to use the skill."
+        ]
+      }
+    },
+    {
+      "name": "empty body",
+      "input": {
+        "folder": "x",
+        "text": "---\nname: x\ndescription: d\n---\n"
+      },
+      "output": {
+        "skill": {
+          "name": "x",
+          "description": "d",
+          "body": "",
+          "source": "app",
+          "allowedTools": []
+        },
+        "problems": [
+          "the instructions (the Markdown after the frontmatter) are empty."
+        ]
+      }
+    },
+    {
+      "name": "paths",
+      "input": {
+        "paths": [
+          "references/checklist.md",
+          "../secret.md",
+          ".hidden/x.md",
+          "a/./b.md",
+          "/abs.md",
+          "notes.exe"
+        ]
+      },
+      "output": [
+        {
+          "path": "references/checklist.md",
+          "ok": "references/checklist.md"
+        },
+        {
+          "path": "../secret.md",
+          "error": "\"../secret.md\" leaves the skill's folder or names a hidden file."
+        },
+        {
+          "path": ".hidden/x.md",
+          "error": "\".hidden/x.md\" leaves the skill's folder or names a hidden file."
+        },
+        {
+          "path": "a/./b.md",
+          "error": "\"a/./b.md\" leaves the skill's folder or names a hidden file."
+        },
+        {
+          "path": "/abs.md",
+          "error": "\"/abs.md\" is not a path inside the skill: use a relative path such as references/guide.md."
+        },
+        {
+          "path": "notes.exe",
+          "error": "\"notes.exe\" is not a text file the agent can read (md, markdown, txt, json, csv, tsv, yaml, yml, xml, html, js, mjs, ts, py, sh, sql)."
+        }
+      ]
+    },
+    {
+      "name": "slash commands",
+      "input": {
+        "commands": [
+          "/proofreading fix this",
+          "/unknown hi",
+          "no slash",
+          "/Proofreading caps"
+        ],
+        "names": [
+          "proofreading",
+          "summarize"
+        ]
+      },
+      "output": [
+        {
+          "text": "/proofreading fix this",
+          "command": {
+            "name": "proofreading",
+            "rest": "fix this"
+          }
+        },
+        {
+          "text": "/unknown hi",
+          "command": null
+        },
+        {
+          "text": "no slash",
+          "command": null
+        },
+        {
+          "text": "/Proofreading caps",
+          "command": null
+        }
+      ]
+    }
+  ]
+}

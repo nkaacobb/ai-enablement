@@ -1,0 +1,149 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "context-snapshot",
+  "description": "ContextManager.snapshot: the content hook serialised (a string as written; { text } alone as its text; anything else as stableStringify with indent 2), clipped at maxChars (keep max-160 chars and add the truncation note), fingerprinted over \"pageId\\npageTitle\\nFULL text\" before clipping. Output without the clock (\"at\").",
+  "operation": "new ContextManager({ page: input.page, maxChars: input.maxChars }).snapshot() -> { pageId, pageTitle, text, chars, totalChars, truncated, hash, empty }",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "string content",
+      "input": {
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": "Hello."
+        },
+        "maxChars": 24000
+      },
+      "output": {
+        "pageId": "editor",
+        "pageTitle": "Editor",
+        "text": "Hello.",
+        "chars": 6,
+        "totalChars": 6,
+        "truncated": false,
+        "hash": "01b899af095e02",
+        "empty": false
+      }
+    },
+    {
+      "name": "{ text } alone is its text",
+      "input": {
+        "page": {
+          "id": "editor",
+          "title": "Editor",
+          "content": {
+            "text": "Hello."
+          }
+        },
+        "maxChars": 24000
+      },
+      "output": {
+        "pageId": "editor",
+        "pageTitle": "Editor",
+        "text": "Hello.",
+        "chars": 6,
+        "totalChars": 6,
+        "truncated": false,
+        "hash": "01b899af095e02",
+        "empty": false
+      }
+    },
+    {
+      "name": "object content is stable JSON",
+      "input": {
+        "page": {
+          "id": "orders",
+          "title": "Orders",
+          "content": {
+            "rows": [
+              {
+                "id": 2,
+                "status": "open"
+              },
+              {
+                "status": "shipped",
+                "id": 1
+              }
+            ],
+            "total": 2
+          }
+        },
+        "maxChars": 24000
+      },
+      "output": {
+        "pageId": "orders",
+        "pageTitle": "Orders",
+        "text": "{\n  \"rows\": [\n    {\n      \"id\": 2,\n      \"status\": \"open\"\n    },\n    {\n      \"id\": 1,\n      \"status\": \"shipped\"\n    }\n  ],\n  \"total\": 2\n}",
+        "chars": 137,
+        "totalChars": 137,
+        "truncated": false,
+        "hash": "0cab053705e177",
+        "empty": false
+      }
+    },
+    {
+      "name": "empty content",
+      "input": {
+        "page": {
+          "id": "blank",
+          "title": "Blank",
+          "content": "   "
+        },
+        "maxChars": 24000
+      },
+      "output": {
+        "pageId": "blank",
+        "pageTitle": "Blank",
+        "text": "   ",
+        "chars": 3,
+        "totalChars": 3,
+        "truncated": false,
+        "hash": "15feff091f7c72",
+        "empty": true
+      }
+    },
+    {
+      "name": "clipped, hash over the full text",
+      "input": {
+        "page": {
+          "id": "log",
+          "title": "Log",
+          "content": "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"
+        },
+        "maxChars": 1000
+      },
+      "output": {
+        "pageId": "log",
+        "pageTitle": "Log",
+        "text": "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij\n…[truncated: the first 840 of 1,500 characters are shown]",
+        "chars": 898,
+        "totalChars": 1500,
+        "truncated": true,
+        "hash": "13c669c4997d32",
+        "empty": false
+      }
+    },
+    {
+      "name": "same text, other page: other hash",
+      "input": {
+        "page": {
+          "id": "other",
+          "title": "Editor",
+          "content": "Hello."
+        },
+        "maxChars": 24000
+      },
+      "output": {
+        "pageId": "other",
+        "pageTitle": "Editor",
+        "text": "Hello.",
+        "chars": 6,
+        "totalChars": 6,
+        "truncated": false,
+        "hash": "065bff6dbbbc80",
+        "empty": false
+      }
+    }
+  ]
+}

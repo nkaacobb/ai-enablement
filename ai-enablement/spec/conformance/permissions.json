@@ -1,0 +1,248 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "permissions",
+  "description": "Permission rules (tool name, * glob, toolset:<glob>, effect:<glob>) merged from index, options and the active agent; deny > ask > allow > the user's settings; system always confirms.",
+  "operation": "decision = decidePermission(tool, mergePolicies(...input.policies.map(normalizePolicy))); confirm = needsConfirmation({ tool, decision, settings: input.settings, allowedForChat: input.allowedForChat })",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "read: no rule, no card",
+      "input": {
+        "tool": {
+          "name": "find",
+          "effect": "read"
+        },
+        "policies": []
+      },
+      "output": {
+        "decision": "",
+        "confirm": false
+      }
+    },
+    {
+      "name": "write: confirm by default",
+      "input": {
+        "tool": {
+          "name": "set_x",
+          "effect": "write"
+        },
+        "policies": []
+      },
+      "output": {
+        "decision": "",
+        "confirm": true
+      }
+    },
+    {
+      "name": "write: confirmations off",
+      "input": {
+        "tool": {
+          "name": "set_x",
+          "effect": "write"
+        },
+        "policies": [],
+        "settings": {
+          "confirmWrites": false
+        }
+      },
+      "output": {
+        "decision": "",
+        "confirm": false
+      }
+    },
+    {
+      "name": "write: allowed for this chat",
+      "input": {
+        "tool": {
+          "name": "set_x",
+          "effect": "write"
+        },
+        "policies": [],
+        "allowedForChat": true
+      },
+      "output": {
+        "decision": "",
+        "confirm": false
+      }
+    },
+    {
+      "name": "destructive follows confirmDestructive",
+      "input": {
+        "tool": {
+          "name": "del",
+          "effect": "destructive"
+        },
+        "policies": [],
+        "settings": {
+          "confirmDestructive": false
+        }
+      },
+      "output": {
+        "decision": "",
+        "confirm": false
+      }
+    },
+    {
+      "name": "external confirms",
+      "input": {
+        "tool": {
+          "name": "send",
+          "effect": "external"
+        },
+        "policies": []
+      },
+      "output": {
+        "decision": "",
+        "confirm": true
+      }
+    },
+    {
+      "name": "system always confirms, even allowed",
+      "input": {
+        "tool": {
+          "name": "write_file",
+          "effect": "system"
+        },
+        "policies": [
+          {
+            "allow": [
+              "write_file"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "decision": "allow",
+        "confirm": true
+      }
+    },
+    {
+      "name": "ask beats settings for a read tool",
+      "input": {
+        "tool": {
+          "name": "peek",
+          "effect": "read",
+          "toolset": "file"
+        },
+        "policies": [
+          {
+            "ask": [
+              "toolset:file"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "decision": "ask",
+        "confirm": true
+      }
+    },
+    {
+      "name": "allow skips the card",
+      "input": {
+        "tool": {
+          "name": "set_x",
+          "effect": "write"
+        },
+        "policies": [
+          {
+            "allow": [
+              "set_*"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "decision": "allow",
+        "confirm": false
+      }
+    },
+    {
+      "name": "deny beats allow (agent adds deny)",
+      "input": {
+        "tool": {
+          "name": "insert_text",
+          "effect": "write",
+          "toolset": "document"
+        },
+        "policies": [
+          {
+            "allow": [
+              "toolset:document"
+            ]
+          },
+          {
+            "deny": [
+              "insert_text"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "decision": "deny",
+        "confirm": null
+      }
+    },
+    {
+      "name": "ask beats allow",
+      "input": {
+        "tool": {
+          "name": "set_x",
+          "effect": "write"
+        },
+        "policies": [
+          {
+            "allow": [
+              "set_x"
+            ],
+            "ask": [
+              "effect:write"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "decision": "ask",
+        "confirm": true
+      }
+    },
+    {
+      "name": "effect glob",
+      "input": {
+        "tool": {
+          "name": "drop",
+          "effect": "destructive"
+        },
+        "policies": [
+          {
+            "deny": [
+              "effect:destr*"
+            ]
+          }
+        ]
+      },
+      "output": {
+        "decision": "deny",
+        "confirm": null
+      }
+    },
+    {
+      "name": "string lists",
+      "input": {
+        "tool": {
+          "name": "a_b",
+          "effect": "write"
+        },
+        "policies": [
+          {
+            "deny": "x, a_*"
+          }
+        ]
+      },
+      "output": {
+        "decision": "deny",
+        "confirm": null
+      }
+    }
+  ]
+}

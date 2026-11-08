@@ -8,7 +8,7 @@ Before any of them: `node <skill>/scripts/detect.mjs <app-root>` (status CURRENT
 capability folder yet → adopt one first (`upgrading.md`, "Adopting the framework"). Read `index.json`, one existing
 tool module, and the integration module (what `host` is) so the new piece looks like the others.
 
-The formats are in `framework.md`. `scaffold.mjs` writes the starting file and registers it; you write the content.
+The formats are in `spec/framework.md`. `scaffold.mjs` writes the starting file and registers it; you write the content.
 
 ## Create a tool
 
@@ -100,7 +100,7 @@ fallback.
 
 ## Add or change context
 
-The context hooks live in the integration module, not the capability folder (`context-sync.md`): add what a page
+The context hooks live in the integration module, not the capability folder (`spec/context-sync.md`): add what a page
 shows to its `content` builder (and its unit test), volatile state to `view`, a new page with `setPage`. An agent that
 should not see the screen gets `context: [app, page]`.
 

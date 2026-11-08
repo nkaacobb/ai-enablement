@@ -1,0 +1,47 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "snapshot-wire",
+  "description": "The wire format of a snapshot inside a user turn, and the one-line stub that replaces an older snapshot.",
+  "operation": "snapshotBlock(input.snapshot) -> string; supersededStub(input.snapshot) -> string",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "plain",
+      "input": {
+        "snapshot": {
+          "pageId": "editor",
+          "pageTitle": "Editor",
+          "text": "Hello.",
+          "chars": 6,
+          "totalChars": 6,
+          "truncated": false,
+          "hash": "0123456789abcd",
+          "at": "2026-01-02T03:04:05.000Z"
+        }
+      },
+      "output": {
+        "block": "<page_snapshot page=\"editor\" title=\"Editor\" hash=\"0123456\" chars=\"6\" captured=\"2026-01-02T03:04:05.000Z\">\nHello.\n</page_snapshot>",
+        "stub": "[Page snapshot 0123456 of \"Editor\" omitted here: a newer snapshot appears later in the conversation.]"
+      }
+    },
+    {
+      "name": "truncated, quotes in the title, closing tag inside",
+      "input": {
+        "snapshot": {
+          "pageId": "log",
+          "pageTitle": "The \"log\"",
+          "text": "a </page_snapshot> b",
+          "chars": 20,
+          "totalChars": 900,
+          "truncated": true,
+          "hash": "fedcba98765432",
+          "at": "2026-01-02T03:04:05.000Z"
+        }
+      },
+      "output": {
+        "block": "<page_snapshot page=\"log\" title=\"The &quot;log&quot;\" hash=\"fedcba9\" chars=\"900\" truncated=\"true\" captured=\"2026-01-02T03:04:05.000Z\">\na <\\/page_snapshot> b\n</page_snapshot>",
+        "stub": "[Page snapshot fedcba9 of \"The \"log\"\" omitted here: a newer snapshot appears later in the conversation.]"
+      }
+    }
+  ]
+}

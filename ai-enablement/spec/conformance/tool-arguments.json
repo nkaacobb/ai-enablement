@@ -1,0 +1,1020 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "tool-arguments",
+  "description": "readArguments (what the model sent, as text or object) and validateArgs (checked and coerced against the tool's parameters). The tool loop refuses a call whose read.error is set before it validates anything, so a cut-off call never runs on guessed arguments (validateArgs on its own would see an empty object). Text over maxLength is an error, never cut; arrays keep their first maxItems items.",
+  "operation": "readArguments(input.raw) -> { args, error }; validateArgs(normalizeTool(input.tool), input.raw) -> { ok, args, errors }",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "object as is",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "n": 3
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "n": 3
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 3,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "JSON text",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": "{\"n\": 3, \"on\": \"yes\"}"
+      },
+      "output": {
+        "read": {
+          "args": {
+            "n": 3,
+            "on": "yes"
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 3,
+            "on": true,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "trailing comma",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": "{\"n\": 3,}"
+      },
+      "output": {
+        "read": {
+          "args": {
+            "n": 3
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 3,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "loose key: value lines",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": "n: 4\nmode: fast"
+      },
+      "output": {
+        "read": {
+          "args": {
+            "n": "4",
+            "mode": "fast"
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 4,
+            "mode": "Fast",
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "unclosed JSON is cut off",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": "{\"n\": 3, \"s\": \"ab"
+      },
+      "output": {
+        "read": {
+          "args": {},
+          "error": "the JSON stops before it is closed, after 17 characters"
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "clamp and snap",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "n": 99,
+          "x": 0.6
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "n": 99,
+            "x": 0.6
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 10,
+            "x": 0.5,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "integer rounds",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "n": 2.6
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "n": 2.6
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 3,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "case-insensitive key",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "N": 5
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "N": 5
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 5,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "enum matched loosely",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "mode": "SLOW MODE"
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "mode": "SLOW MODE"
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "mode": "slow-mode",
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "enum not matched",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "mode": "medium"
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "mode": "medium"
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": false,
+          "args": {
+            "need": "dflt"
+          },
+          "errors": [
+            "\"mode\" must be one of Fast, slow-mode"
+          ]
+        }
+      }
+    },
+    {
+      "name": "too long is an error",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "s": "abcdefgh"
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "s": "abcdefgh"
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": false,
+          "args": {
+            "need": "dflt"
+          },
+          "errors": [
+            "\"s\" is 8 characters long, over its limit of 5: send less in one call"
+          ]
+        }
+      }
+    },
+    {
+      "name": "booleans in words",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "on": "off"
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "on": "off"
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "on": false,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "array capped",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "tags": [
+            "a",
+            "b",
+            "c"
+          ]
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "tags": [
+              "a",
+              "b",
+              "c"
+            ]
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "tags": [
+              "a",
+              "b"
+            ],
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "unknown keys dropped",
+      "input": {
+        "tool": {
+          "name": "t",
+          "description": "d",
+          "parameters": {
+            "n": {
+              "type": "integer",
+              "min": 1,
+              "max": 10
+            },
+            "x": {
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.25
+            },
+            "s": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "mode": {
+              "type": "enum",
+              "values": [
+                "Fast",
+                "slow-mode"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2
+            },
+            "need": {
+              "type": "string",
+              "required": false,
+              "default": "dflt"
+            }
+          }
+        },
+        "raw": {
+          "zzz": 1,
+          "n": 1
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "zzz": 1,
+            "n": 1
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": true,
+          "args": {
+            "n": 1,
+            "need": "dflt"
+          },
+          "errors": []
+        }
+      }
+    },
+    {
+      "name": "missing required",
+      "input": {
+        "tool": {
+          "name": "r",
+          "description": "d",
+          "parameters": {
+            "id": {
+              "type": "string",
+              "required": true
+            }
+          }
+        },
+        "raw": {}
+      },
+      "output": {
+        "read": {
+          "args": {},
+          "error": ""
+        },
+        "validated": {
+          "ok": false,
+          "args": {},
+          "errors": [
+            "missing required argument \"id\""
+          ]
+        }
+      }
+    },
+    {
+      "name": "empty string counts as missing",
+      "input": {
+        "tool": {
+          "name": "r",
+          "description": "d",
+          "parameters": {
+            "id": {
+              "type": "string",
+              "required": true
+            }
+          }
+        },
+        "raw": {
+          "id": ""
+        }
+      },
+      "output": {
+        "read": {
+          "args": {
+            "id": ""
+          },
+          "error": ""
+        },
+        "validated": {
+          "ok": false,
+          "args": {},
+          "errors": [
+            "missing required argument \"id\""
+          ]
+        }
+      }
+    }
+  ]
+}

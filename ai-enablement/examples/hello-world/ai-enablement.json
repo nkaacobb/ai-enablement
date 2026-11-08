@@ -1,10 +1,11 @@
 {
   "$comment": "AI Enablement manifest: what the skill installed in this app and what the app owns. Written at the end of every run of the skill; committed with the app; never secrets. Format: references/upgrading.md, 'The manifest'.",
   "skill": "ai-enablement",
-  "skillVersion": "2.0.1",
+  "skillVersion": "3.0.0",
   "runtimeVersion": "1.6.1",
-  "updated": "2026-10-03",
+  "updated": "2026-11-07",
   "appId": "hello-world",
+  "stack": { "id": "web", "host": "static" },
   "framework": {
     "runtime": "../../assets/ai-agent",
     "relay": { "file": "../../assets/relay/relay.mjs", "version": "1.4.0", "mode": "local", "config": "none (development)" }

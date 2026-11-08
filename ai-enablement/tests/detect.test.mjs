@@ -317,3 +317,104 @@ button.primary { background: blue; }
   assert.match(hints[0], /^public\/css\/app\.css:9: \.aia-tabs sets flex-shrink: 0: the runtime's pinned-chrome guard/);
   assert.match(hints[1], /^public\/css\/app\.css:10: \.aia-scope \.aia-field overrides the settings dialog with !important \(align-items\)/);
 });
+
+// ── Tech stacks (skill 3.0): the stack decides the runtime and the recipe (stacks/<id>/STACK.md) ───────────────────
+
+test('stacks: cargoDependencies reads runtime dependencies only, in every Cargo.toml form', async () => {
+  const { cargoDependencies } = await import('../scripts/lib/stacks.mjs');
+  const deps = cargoDependencies(`[package]
+name = "app" # a comment
+[dependencies]
+eframe = { workspace = true }
+serde = "=1.0.229"
+egui = { version = "^0.37.0", features = ["x"] }
+[dependencies.iced]
+version = "0.13"
+[target.'cfg(windows)'.dependencies]
+windows = "0.62"
+[dev-dependencies]
+egui_kittest = "0.37"
+[build-dependencies]
+cc = "1"
+`);
+  assert.deepEqual(deps, { eframe: '', serde: '1.0.229', egui: '0.37.0', iced: '0.13', windows: '0.62' });
+});
+
+test('stacks: a Rust egui workspace (as KAROS) is rust-egui, with the pinned version; target/ is skipped', async () => {
+  const root = app();
+  write(root, 'Cargo.toml', '[workspace]\nmembers = ["crates/desktop", "crates/core"]\n[workspace.dependencies]\neframe = "=0.37.0"\negui = "=0.37.0"\naxum = "=0.8.9"\n');
+  write(root, 'crates/desktop/Cargo.toml', '[package]\nname = "desktop"\n[dependencies]\neframe = { workspace = true }\negui.workspace = true\n');
+  write(root, 'crates/core/Cargo.toml', '[package]\nname = "core"\n[dependencies]\naxum = { workspace = true }\n');
+  write(root, 'docs/guide.html', '<h1>Docs</h1>');
+  write(root, 'target/debug/build/x/ai-agent.js', "export const VERSION = '1.0.0'; export function createAiAgent() {}");
+  const { report } = await import('../scripts/detect.mjs');
+  const r = detect(root);
+  assert.equal(r.stack.id, 'rust-egui', 'the native UI wins over a stray docs page');
+  assert.equal(r.stack.family, 'rust');
+  assert.equal(r.stack.ui, 'egui/eframe 0.37.0', 'the version comes from [workspace.dependencies]');
+  assert.deepEqual(r.stack.evidence, ['crates/desktop/Cargo.toml (eframe, egui)'], 'the workspace root only pins versions; axum is not a UI');
+  assert.equal(r.runtimes.length, 0, "Cargo's target/ next to a Cargo.toml is build output, not the app");
+  assert.equal(r.status, 'none');
+  const text = report(r);
+  assert.match(text, /Stack {5}rust-egui — egui\/eframe 0\.37\.0/);
+  if (r.stack.status !== 'supported') {
+    assert.match(text, /STOP before installing/);
+    assert.match(text, /Do NOT copy the web runtime \(assets\/ai-agent\/\)/);
+    assert.doesNotMatch(text, /follow SKILL\.md "Install"/);
+  }
+});
+
+test('stacks: Tauri and ASP.NET Core render HTML, so they are the web stack with their own host', () => {
+  const tauri = app();
+  write(tauri, 'package.json', '{"name":"t"}');
+  write(tauri, 'index.html', '<div id="app"></div>');
+  write(tauri, 'src-tauri/Cargo.toml', '[package]\nname = "t"\n[dependencies]\ntauri = { version = "2" }\n');
+  write(tauri, 'src-tauri/tauri.conf.json', '{}');
+  const t = detect(tauri).stack;
+  assert.deepEqual([t.id, t.host, t.status], ['web', 'tauri', 'supported']);
+  const aspnet = app();
+  write(aspnet, 'Web/Web.csproj', '<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>');
+  write(aspnet, 'Web/Pages/Index.cshtml', '<h1>Hi</h1>');
+  const a = detect(aspnet).stack;
+  assert.deepEqual([a.id, a.host], ['web', 'aspnet']);
+});
+
+test('stacks: a WinForms project is dotnet-winforms; bin/ and obj/ beside a .csproj are skipped, a web app\'s bin/ is not', () => {
+  const root = app();
+  write(root, 'Notes/Notes.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net8.0-windows</TargetFramework><UseWindowsForms>true</UseWindowsForms></PropertyGroup></Project>');
+  write(root, 'Notes/MainForm.cs', 'public partial class MainForm : Form {}');
+  write(root, 'Notes/bin/Debug/ai-agent.js', "export const VERSION = '1.0.0'; export function createAiAgent() {}");
+  write(root, 'Notes/obj/x/ai-agent.js', "export const VERSION = '1.0.0'; export function createAiAgent() {}");
+  const r = detect(root);
+  assert.deepEqual([r.stack.id, r.stack.family, r.stack.ui], ['dotnet-winforms', 'dotnet', '.NET net8.0-windows']);
+  assert.equal(r.runtimes.length, 0, '.NET build output is not scanned');
+  const web = app();
+  write(web, 'package.json', '{"name":"w"}');
+  copyRuntime(web, 'bin/ai-agent');
+  assert.equal(detect(web).runtimes.length, 1, 'a bin/ folder without a project file beside it is the app\'s own');
+});
+
+test('stacks: two native UIs in one folder, or a manifest that disagrees with the files, are flagged', () => {
+  const both = app();
+  write(both, 'gui/Cargo.toml', '[package]\nname = "g"\n[dependencies]\neframe = "0.37"\n');
+  write(both, 'win/Win.csproj', '<Project><PropertyGroup><UseWindowsForms>true</UseWindowsForms></PropertyGroup></Project>');
+  const s = detect(both).stack;
+  assert.equal(s.id, 'rust-egui');
+  assert.deepEqual(s.candidates.map((c) => c.id), ['rust-egui', 'dotnet-winforms']);
+  assert.match(s.warnings[0], /more than one native UI/);
+  const pinned = app();
+  write(pinned, 'Cargo.toml', '[package]\nname = "p"\n[dependencies]\neframe = "0.37"\n');
+  write(pinned, 'ai-enablement.json', JSON.stringify({ skill: 'ai-enablement', stack: { id: 'web', host: 'static' } }));
+  const p = detect(pinned).stack;
+  assert.deepEqual([p.id, p.pinned], ['web', true]);
+  assert.match(p.warnings[0], /pins "web" but the files look like "rust-egui"/);
+});
+
+test('stacks: an app with no recognisable stack asks the user', async () => {
+  const root = app();
+  write(root, 'README.md', '# Something');
+  const { report } = await import('../scripts/detect.mjs');
+  const r = detect(root);
+  assert.equal(r.stack.id, null);
+  assert.match(report(r), /stack is not recognised: ask the user/);
+});

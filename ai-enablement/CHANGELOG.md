@@ -6,6 +6,91 @@ skill's version is in `package.json`; the runtime (`VERSION` in `assets/ai-agent
 (`AIA_RELAY_VERSION` / `RELAY_VERSION`) carry their own, which only change when their code does.
 `scripts/release-hashes.json` fingerprints every released runtime and relay.
 
+## 3.0.0 — one skill, several stacks (runtime unchanged at 1.6.1; relays unchanged at 1.4.0)
+
+The skill was written for web apps. Run on a native app, it said "INSTALL — follow the normal workflow" and would
+have copied a browser runtime into an egui or WinForms window, which can't run it. 3.0 makes the tech stack the
+first thing every run decides. The skill is split into three parts:
+
+- **the portable contract** (`spec/`), the same on every stack;
+- **one recipe per stack** (`stacks/<id>/STACK.md`);
+- **one runtime per stack**.
+
+Web apps are unaffected: the runtime, the relays and every API are unchanged. The native runtimes (Rust/egui,
+C#/WinForms) are planned. Until they ship, detect says so and stops before installing.
+
+### Stacks
+
+- **`scripts/detect.mjs` names the stack** on its first line. It reads where the stack came from in the files
+  (`Cargo.toml` dependencies, `.csproj` UI flags, `tauri.conf.json`, `package.json`, PHP or HTML files) and reports
+  whether the skill supports it:
+
+  | Stack | What it covers | Status |
+  | --- | --- | --- |
+  | `web` (hosts `static`, `php`, `node`, `tauri`, `aspnet`) | HTML pages, including Tauri webviews and ASP.NET Core / Blazor | supported |
+  | `rust-egui` | Rust with egui / eframe | planned |
+  | `dotnet-winforms` | C# with Windows Forms | planned |
+  | `dotnet-wpf`, `dotnet-winui`, `dotnet-maui`, `rust-other` | recognised | no recipe |
+- **What "No AI agent found" leads to now depends on the stack.**
+  - A supported stack gets INSTALL with its recipe.
+  - A planned or unsupported stack gets STOP: never copy the web runtime into a native app, never hand-write a
+    drawer, and offer what works on any stack (the survey and plan, and the `ai/` folder's skills, agents, toolsets
+    and permissions).
+  - An unrecognised folder gets "ask the user".
+- **Flagged**: two native UIs in one folder, and a manifest whose `"stack"` disagrees with the files. The manifest's
+  stack wins.
+- **Build output is skipped** beside the project file that makes it: Cargo's `target/`, and .NET's `bin/` and `obj/`.
+  A built Rust workspace used to fill detect's 20,000-file walk. Also skipped: `.vs/`, `.idea/`.
+- New `scripts/lib/stacks.mjs` (shared by detect, validate and scaffold).
+
+### SKILL.md and the recipes
+
+- **`SKILL.md` is a stack-neutral router.** Step 0 reads the Stack line first. Steps 1–15 state each step's portable
+  rule; *how* is in `stacks/<id>/STACK.md` under the same number. The survey gains a portable **policy constraints**
+  item: what the app allows an AI to see and do (consent, local-only models, where data may persist, actions
+  reserved for a person). A plan that would break one stops and asks.
+- **`stacks/web/STACK.md`**: the web steps that used to be in SKILL.md (code samples, the Quick API), plus new
+  **Tauri** (Rust commands as `host` through `invoke`, CSP, a Rust command instead of the relay) and **ASP.NET Core /
+  Blazor** (wwwroot, JS interop, the relay alternatives) sections.
+- **`stacks/rust-egui/STACK.md`** and **`stacks/dotnet-winforms/STACK.md`** (planned): what to do today, and the
+  integration design the native runtimes are being built to, step by step.
+
+### The portable contract: `spec/`
+
+- `references/framework.md` → **`spec/framework.md`**; `references/context-sync.md` → **`spec/context-sync.md`**
+  (content unchanged).
+- **`spec/behaviour.md`** (new): everything a runtime does, with its limits. Every number was checked against the
+  JS runtime.
+- **`spec/tool-catalog.md`** (new): the tools of a compiled app as data. A test in the app generates
+  `ai/tools.catalog.json` and fails when it is stale; the index names it as `"toolCatalog"`.
+- **`spec/conformance/`** (new): 16 suites of frozen input → output vectors from the JS runtime. They cover hash,
+  stable JSON, context description, snapshots, sync planning, the snapshot wire format, the system prompt, tool
+  contracts, tool arguments, tool results, permissions, effects ↔ MCP annotations, frontmatter, skills, agents and
+  memory. `tests/conformance.test.mjs` holds the JS runtime to them, and the Rust and .NET runtimes will run the same
+  files. `scripts/conformance-export.mjs [--write]` regenerates them, on purpose only.
+
+### Lifecycle scripts
+
+- **validate.mjs**:
+  - Reads the tool catalog and checks against it what it checks for JS modules: contracts, duplicates, toolsets,
+    agents, `allowed-tools`, `ai-tools.json`.
+  - On a compiled stack without a catalog, references to tools are *unchecked* warnings, not errors, and a warning
+    asks for the catalog.
+  - Flags stack warnings, and notes a manifest without `"stack"`.
+- **scaffold.mjs**:
+  - `--stack`, or the nearest manifest's `"stack"`.
+  - On a compiled stack, `init` writes an index without tool modules, and `tool` is refused with where tools go
+    instead (code, the recipe's §9). Skills, agents and toolsets scaffold as before.
+- **Manifest**: `"stack": { "id", "host"?, "ui"? }` (template, Hello World, `references/upgrading.md`).
+- **Installers**: `target/`, `bin/` and `obj/` are not copied (the native runtimes' build output). `.gitignore` the
+  same.
+
+### Upgrading from 2.0.1
+
+1. Nothing to do in apps: the runtime and relays are unchanged. On the next run, add `"stack"` to
+   `ai-enablement.json` (validate notes it).
+2. Links into the skill: `references/framework.md` and `references/context-sync.md` are now under `spec/`.
+
 ## 2.0.1 — the settings dialog's layout guards (runtime 1.6.1; relays unchanged at 1.4.0)
 
 Two layout bugs in the settings dialog, fixed in the runtime and kept fixed in every app the skill touches. Found in a

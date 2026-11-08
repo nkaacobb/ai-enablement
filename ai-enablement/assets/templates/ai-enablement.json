@@ -5,6 +5,7 @@
   "runtimeVersion": "{{runtimeVersion}}",
   "updated": "{{date}}",
   "appId": "{{appId}}",
+  "stack": { "id": "{{stackId}}" },
   "framework": {
     "runtime": "{{runtimeDir}}",
     "relay": null

@@ -37,7 +37,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $name = 'ai-enablement'
 $legacy = @('add-ai-skill', 'ai-agent-drawer')
-$exclude = @('node_modules', '.git', '.verify', 'chrome-profile')
+$exclude = @('node_modules', '.git', '.verify', 'chrome-profile', 'target', 'bin', 'obj')   # target, bin, obj: build output of the Rust and .NET runtimes
 $source = (Resolve-Path (Join-Path $PSScriptRoot $name)).Path
 
 if (-not (Test-Path (Join-Path $source 'SKILL.md'))) {

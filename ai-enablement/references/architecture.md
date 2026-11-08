@@ -1,6 +1,6 @@
 # Architecture
 
-The runtime (the *how*) under the application's capability folder (the *what*, `framework.md`):
+The runtime (the *how*) under the application's capability folder (the *what*, `spec/framework.md`):
 
 ```
 host app ──hooks──▶ ContextManager ──snapshot/hash──▶ conversation.js (planTurn / buildRequestMessages)
@@ -62,15 +62,18 @@ Outside the runtime:
 | Path | What it is |
 | --- | --- |
 | `assets/relay/relay.php`, `relay.mjs`, `relay.config.example.php` | The relays (same contract, modes and config keys) and the documented config. |
-| `scripts/detect.mjs` | Run first on any app: what is there (runtime, relay, integration, capability folders, manifest or 1.x record, dev-time folders), which version, are the copies unchanged, which features are used, which workarounds are now redundant; the lifecycle route. |
-| `scripts/validate.mjs` | Loads a capability folder with the runtime's own modules: errors and warnings; checks the manifest. |
+| `spec/` | The portable contract every runtime implements: `framework.md`, `context-sync.md`, `behaviour.md`, `tool-catalog.md`, and `conformance/*.json` (frozen input → output vectors from this runtime). |
+| `stacks/<id>/STACK.md` | One recipe per stack (`web`, `rust-egui`, `dotnet-winforms`): how each install step is done there. |
+| `scripts/detect.mjs` | Run first on any app: the **stack** (`scripts/lib/stacks.mjs`: from Cargo.toml, .csproj, tauri.conf.json, package.json, PHP/HTML; supported / planned / unsupported), then what is there (runtime, relay, integration, capability folders, manifest or 1.x record, dev-time folders), which version, are the copies unchanged, which features are used, which workarounds are now redundant; the lifecycle route. |
+| `scripts/conformance-export.mjs`, `scripts/lib/conformance.mjs` | The conformance suites (what each pins, its cases, how this runtime computes the output) and the export that writes `spec/conformance/` (`--write`, only for an intended behaviour change). |
+| `scripts/validate.mjs` | Loads a capability folder with the runtime's own modules (a compiled app's tools from its generated tool catalog): errors and warnings; checks the manifest and the stack. |
 | `scripts/scaffold.mjs` | Creates a tool, toolset, skill or agent from `assets/templates/` and registers it; never overwrites. |
 | `scripts/workspace.mjs` | The development workspace server (static site + relay + `/ai-workspace`): read the app's source, write in its capability folder. Never deployed. |
 | `scripts/release-hashes.mjs`, `scripts/release-hashes.json` | Fingerprints of every released runtime and relay, so `detect.mjs` can tell unchanged copies from edited ones. |
 | `scripts/verify.mjs` | Drives headless Edge/Chrome through an integration and reports pass/fail per check, including every Settings tab against its layout spec (`scripts/lib/settings-layout.mjs`, shared with the browser tests). |
 | `scripts/guards.mjs`, `scripts/lib/css-guards.mjs` | The layout guards of an app's runtime stylesheet: a small CSS reader (rules, specificity, the winning declaration) that `detect.mjs` uses for `layoutGuards` and the host's element rules; `--apply` adds missing guard blocks to an edited copy in place. |
 | `scripts/lib/cdp.mjs` | Zero-dependency DevTools-protocol driver (Node 22+ global WebSocket), shared by `verify.mjs` and the browser tests. |
-| `tests/` | `runtime` (pure modules), `framework` (frontmatter, schema, permissions, skills, agents, the capability index, the workspace client), `files` (attachment readers), `relay` (both relays + fake upstream), `browser` (real browser: keys, dialogs, tools, memory, screenshots, attachments), `framework-browser` (agents, skills, permissions, in-app authoring end to end), `workspace` (the dev server's rules), `lifecycle` (scaffold, validate), `example` (Hello World), `detect`, `guards`. `fixtures/hostile-host/`: a page whose stylesheet styles bare elements (the settings-layout regression, also for `verify.mjs`). |
+| `tests/` | `conformance` (this runtime against `spec/conformance/`), `runtime` (pure modules), `framework` (frontmatter, schema, permissions, skills, agents, the capability index, the workspace client), `files` (attachment readers), `relay` (both relays + fake upstream), `browser` (real browser: keys, dialogs, tools, memory, screenshots, attachments), `framework-browser` (agents, skills, permissions, in-app authoring end to end), `workspace` (the dev server's rules), `lifecycle` (scaffold, validate), `example` (Hello World), `detect` (stacks too), `guards`. `fixtures/hostile-host/`: a page whose stylesheet styles bare elements (the settings-layout regression, also for `verify.mjs`). |
 
 Everything under `core/` and `adapters/` is DOM-free, which is why the Node relay can import it and the unit tests can
 run without a browser. What needs a browser (`ui/`) is covered by `tests/browser.test.mjs`.

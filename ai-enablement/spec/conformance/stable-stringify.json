@@ -1,0 +1,90 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "stable-stringify",
+  "description": "stableStringify: JSON with object keys sorted (code-unit order) at every level, arrays kept in order; indent 0 means compact. Numbers are written as ECMAScript Number::toString writes them (1e+21, not 1e21): a runtime in another language needs a JS-compatible formatter (Rust: ryu-js). Content builders, tool results and fingerprints rely on it being deterministic.",
+  "operation": "stableStringify(input.value, input.indent) -> string",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "sorted keys, indented",
+      "input": {
+        "value": {
+          "b": 1,
+          "a": {
+            "d": [
+              3,
+              1
+            ],
+            "c": "x"
+          }
+        },
+        "indent": 2
+      },
+      "output": "{\n  \"a\": {\n    \"c\": \"x\",\n    \"d\": [\n      3,\n      1\n    ]\n  },\n  \"b\": 1\n}"
+    },
+    {
+      "name": "compact",
+      "input": {
+        "value": {
+          "z": true,
+          "a": null,
+          "m": [
+            {
+              "y": 1,
+              "x": 2
+            }
+          ]
+        },
+        "indent": 0
+      },
+      "output": "{\"a\":null,\"m\":[{\"x\":2,\"y\":1}],\"z\":true}"
+    },
+    {
+      "name": "uppercase sorts before lowercase",
+      "input": {
+        "value": {
+          "b": 1,
+          "B": 2,
+          "a": 3,
+          "A": 4
+        },
+        "indent": 0
+      },
+      "output": "{\"A\":4,\"B\":2,\"a\":3,\"b\":1}"
+    },
+    {
+      "name": "string escapes",
+      "input": {
+        "value": {
+          "q": "say \"hi\"\n\ttab \\ backslash"
+        },
+        "indent": 0
+      },
+      "output": "{\"q\":\"say \\\"hi\\\"\\n\\ttab \\\\ backslash\"}"
+    },
+    {
+      "name": "empty containers",
+      "input": {
+        "value": {
+          "a": {},
+          "b": []
+        },
+        "indent": 2
+      },
+      "output": "{\n  \"a\": {},\n  \"b\": []\n}"
+    },
+    {
+      "name": "numbers",
+      "input": {
+        "value": [
+          0,
+          -1.5,
+          1e+21,
+          123456789012
+        ],
+        "indent": 0
+      },
+      "output": "[0,-1.5,1e+21,123456789012]"
+    }
+  ]
+}

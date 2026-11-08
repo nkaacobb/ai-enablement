@@ -2,7 +2,7 @@
 
 `import { createAiAgent, fromDom, DEFAULT_SYSTEM_PROMPT } from './ai-agent/ai-agent.js'` and load `ai-agent/ai-agent.css`.
 Types: `assets/ai-agent/ai-agent.d.ts`. Runtime version: `VERSION` (1.6.0). Tools (the agent acting in the app):
-`tools.md`. Capabilities — tools, toolsets, skills, agents, permissions, the capability index: `framework.md`.
+`tools.md`. Capabilities — tools, toolsets, skills, agents, permissions, the capability index: `spec/framework.md`.
 Memory, screenshots and attachments (the + button): `memory-and-vision.md`. In-app authoring: `in-app-authoring.md`.
 
 ## createAiAgent(options) → agent
@@ -39,7 +39,7 @@ automatically.
 | `tools` | `[]` | Tools given inline: `[{ name, title?, description, parameters? \| inputSchema?, effect?: 'read'\|'write'\|'destructive'\|'external'\|'system', annotations?, pages?, when?, group?, enabled?, timeoutMs?, run(args, { host, agent, signal, call }) }]`, toolsets (`{ name, title, description, tools }`), or `(host) => that list`. Added to the capability index's (inline wins). Invalid definitions are skipped with a console error. |
 | `toolsConfig` | `null` | The app's default tool selection and switches (`ai-tools.json`): a URL, an object, or a (possibly async) function. Applied like `defaults` (questions wait for it). Default: the index's `toolsConfig`. |
 | `host` | `null` | The object tools call: `run(args, { host })` — the app's store, service layer or instance. Also what `describe_host` shows the in-app agent. |
-| `capabilities` | `null` | The capability index: a URL (`'ai/index.json'`) or an index object (`framework.md`). Loads tool modules, toolsets, skills, agents, permissions, the tool config and the memory file. `agent.capabilities.reload()` loads it again. Problems are collected (console, `agent.capabilities.problems()`), never thrown. |
+| `capabilities` | `null` | The capability index: a URL (`'ai/index.json'`) or an index object (`spec/framework.md`). Loads tool modules, toolsets, skills, agents, permissions, the tool config and the memory file. `agent.capabilities.reload()` loads it again. Problems are collected (console, `agent.capabilities.problems()`), never thrown. |
 | `agents` / `skills` / `toolsets` | `[]` | Given inline, added to the index's (inline wins on a name clash). |
 | `permissions` | `null` | `{ allow, ask, deny }` rules (tool names, `name_*`, `toolset:<name>`, `effect:<effect>`), merged with the index's and the active agent's. deny > ask > allow > the user's settings; `system` tools always ask. |
 | `agent` | `''` | The agent to start with (else the index's `defaultAgent`, the one marked `default`, the first). |
@@ -80,7 +80,7 @@ agent.setPage({
 - `tools` (optional): tools that exist only on this page (same format as the `tools` option). They are sent as
   tools, not as page description.
 - `setPage(null)` clears the page (flag shows *none*).
-- Write `content` as a pure, tested function of the app's state (`context-sync.md`, "Content builders").
+- Write `content` as a pure, tested function of the app's state (`spec/context-sync.md`, "Content builders").
 
 ## Agent methods
 

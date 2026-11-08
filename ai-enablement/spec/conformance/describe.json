@@ -1,0 +1,60 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "describe",
+  "description": "describe: how app and page context objects become prompt text: \"Humanized Key: value\" lines, lists as \"- \" bullets under their key, nested objects as JSON, empty values left out.",
+  "operation": "describe(input.value) -> string",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "app context",
+      "input": {
+        "value": {
+          "name": "Inventory",
+          "purpose": "Track stock.",
+          "capabilities": [
+            "Items: stock items",
+            "Orders: purchase orders"
+          ],
+          "limits": [
+            "Cannot place orders"
+          ]
+        }
+      },
+      "output": "Name: Inventory\nPurpose: Track stock.\nCapabilities:\n- Items: stock items\n- Orders: purchase orders\nLimits:\n- Cannot place orders"
+    },
+    {
+      "name": "page context with camelCase keys",
+      "input": {
+        "value": {
+          "id": "orders",
+          "title": "Orders",
+          "purpose": "Open orders.",
+          "openDialog": "Edit order 12"
+        }
+      },
+      "output": "Id: orders\nTitle: Orders\nPurpose: Open orders.\nOpen Dialog: Edit order 12"
+    },
+    {
+      "name": "nested object and empty values",
+      "input": {
+        "value": {
+          "name": "X",
+          "filters": {
+            "status": "open",
+            "page": 2
+          },
+          "note": "",
+          "tags": []
+        }
+      },
+      "output": "Name: X\nFilters:\n{\n  \"page\": 2,\n  \"status\": \"open\"\n}"
+    },
+    {
+      "name": "a plain string",
+      "input": {
+        "value": "Just text."
+      },
+      "output": "Just text."
+    }
+  ]
+}

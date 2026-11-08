@@ -1,0 +1,327 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "plan-turn",
+  "description": "planTurn and contextState: does the next question carry a snapshot, and what does the flag show? messages is the transcript before the question; a message carries a snapshot { hash, text? } (text absent = a stub). The window is windowStart(n) = max(0, n - max(2, historyMessages)).",
+  "operation": "planTurn(input) -> { attach, reason, syncedHash }; contextState(input) -> { state, pending }; windowStart(messages.length + 1, historyMessages)",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "sharing off",
+      "input": {
+        "messages": [],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        },
+        "share": false
+      },
+      "output": {
+        "plan": {
+          "attach": false,
+          "reason": "off",
+          "syncedHash": null
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": null,
+          "pending": false,
+          "reason": "off",
+          "state": "off"
+        },
+        "windowStart": 0
+      }
+    },
+    {
+      "name": "empty screen",
+      "input": {
+        "messages": [],
+        "snapshot": {
+          "hash": "e",
+          "text": "",
+          "empty": true
+        }
+      },
+      "output": {
+        "plan": {
+          "attach": false,
+          "reason": "empty",
+          "syncedHash": null
+        },
+        "state": {
+          "currentHash": "e",
+          "syncedHash": null,
+          "pending": false,
+          "reason": "empty",
+          "state": "none"
+        },
+        "windowStart": 0
+      }
+    },
+    {
+      "name": "first question: unread",
+      "input": {
+        "messages": [],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        }
+      },
+      "output": {
+        "plan": {
+          "attach": true,
+          "reason": "unread",
+          "syncedHash": null
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": null,
+          "pending": true,
+          "reason": "unread",
+          "state": "unread"
+        },
+        "windowStart": 0
+      }
+    },
+    {
+      "name": "unchanged",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "page"
+            }
+          },
+          {
+            "role": "assistant"
+          }
+        ],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        }
+      },
+      "output": {
+        "plan": {
+          "attach": false,
+          "reason": "unchanged",
+          "syncedHash": "aaaaaaaaaaaaaa"
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": "aaaaaaaaaaaaaa",
+          "pending": false,
+          "reason": "unchanged",
+          "state": "synced"
+        },
+        "windowStart": 0
+      }
+    },
+    {
+      "name": "changed",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "snapshot": {
+              "hash": "bbbbbbbbbbbbbb",
+              "text": "page"
+            }
+          },
+          {
+            "role": "assistant"
+          }
+        ],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        }
+      },
+      "output": {
+        "plan": {
+          "attach": true,
+          "reason": "changed",
+          "syncedHash": "bbbbbbbbbbbbbb"
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": "bbbbbbbbbbbbbb",
+          "pending": true,
+          "reason": "changed",
+          "state": "dirty"
+        },
+        "windowStart": 0
+      }
+    },
+    {
+      "name": "forced re-read",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "page"
+            }
+          },
+          {
+            "role": "assistant"
+          }
+        ],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        },
+        "force": true
+      },
+      "output": {
+        "plan": {
+          "attach": true,
+          "reason": "forced",
+          "syncedHash": "aaaaaaaaaaaaaa"
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": "aaaaaaaaaaaaaa",
+          "pending": true,
+          "reason": "forced",
+          "state": "synced"
+        },
+        "windowStart": 0
+      }
+    },
+    {
+      "name": "a stub (no text) does not count",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa"
+            }
+          },
+          {
+            "role": "assistant"
+          }
+        ],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        }
+      },
+      "output": {
+        "plan": {
+          "attach": true,
+          "reason": "trimmed",
+          "syncedHash": null
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": null,
+          "pending": true,
+          "reason": "trimmed",
+          "state": "unread"
+        },
+        "windowStart": 0
+      }
+    },
+    {
+      "name": "trimmed out of the window",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "page"
+            }
+          },
+          {
+            "role": "assistant"
+          },
+          {
+            "role": "user"
+          },
+          {
+            "role": "assistant"
+          }
+        ],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        },
+        "historyMessages": 2
+      },
+      "output": {
+        "plan": {
+          "attach": true,
+          "reason": "trimmed",
+          "syncedHash": null
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": null,
+          "pending": true,
+          "reason": "trimmed",
+          "state": "unread"
+        },
+        "windowStart": 3
+      }
+    },
+    {
+      "name": "newest snapshot wins",
+      "input": {
+        "messages": [
+          {
+            "role": "user",
+            "snapshot": {
+              "hash": "bbbbbbbbbbbbbb",
+              "text": "page"
+            }
+          },
+          {
+            "role": "assistant"
+          },
+          {
+            "role": "user",
+            "snapshot": {
+              "hash": "aaaaaaaaaaaaaa",
+              "text": "page"
+            }
+          },
+          {
+            "role": "assistant"
+          }
+        ],
+        "snapshot": {
+          "hash": "aaaaaaaaaaaaaa",
+          "text": "page",
+          "empty": false
+        }
+      },
+      "output": {
+        "plan": {
+          "attach": false,
+          "reason": "unchanged",
+          "syncedHash": "aaaaaaaaaaaaaa"
+        },
+        "state": {
+          "currentHash": "aaaaaaaaaaaaaa",
+          "syncedHash": "aaaaaaaaaaaaaa",
+          "pending": false,
+          "reason": "unchanged",
+          "state": "synced"
+        },
+        "windowStart": 0
+      }
+    }
+  ]
+}

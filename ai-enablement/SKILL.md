@@ -1,42 +1,46 @@
 ---
 name: ai-enablement
-description: Install, upgrade and extend a web application's AI layer. Builds a screen-aware AI agent into the app (a chat drawer that sees the current page with hash-synced context, acts through tools wrapping the app's own functions, remembers notes, looks at screenshots, takes attachments, works with any LLM - LM Studio, Ollama, OpenAI, Anthropic, Gemini, relays) and manages its capability folder - MCP-compatible tools and toolsets, Agent Skills, agents, permissions - plus a dev workspace where the in-app agent writes new tools. Use when the user asks to add or integrate an AI agent, assistant, chatbot or copilot panel into an app; to update or upgrade one (it detects what is there, upgrades framework files, keeps the app's own); to add a tool, toolset, skill or agent to an app's AI ("add a tool that lets the AI inspect the current track"); to let the app's AI create tools; or mentions ai-enablement, add-ai-skill or the agent drawer. Vanilla ES modules, no build step; HTML, PHP, React, Vue, Svelte, Angular, Next.js.
+description: Install, upgrade and extend an application's AI layer. Builds a screen-aware AI agent into the app (a chat drawer that sees the current page with hash-synced context, acts through tools wrapping the app's own functions, remembers notes, looks at screenshots, takes attachments, works with any LLM - LM Studio, Ollama, OpenAI, Anthropic, Gemini, relays) and manages its capability folder - MCP-compatible tools and toolsets, Agent Skills, agents, permissions - plus a dev workspace where the in-app agent writes new tools. Use when the user asks to add or integrate an AI agent, assistant, chatbot or copilot panel into an app; to update or upgrade one; to add a tool, toolset, skill or agent to an app's AI ("add a tool that lets the AI inspect the current track"); to let the app's AI create tools; or mentions ai-enablement, add-ai-skill or the agent drawer. Stacks: web (HTML, PHP, React, Vue, Svelte, Angular, Next.js, Tauri, ASP.NET Core); native Rust/egui and C#/WinForms planned - detect says which.
 license: MIT
 ---
 
 # AI Enablement
 
-You manage an application's AI layer, end to end and repeatably:
+You manage an application's AI layer, end to end and repeatably, on whatever stack the app is built with:
 
-- **The runtime** (`assets/ai-agent/`, copied into the app unchanged): the agent drawer — it slides in from the right,
-  sees what the user sees (app + page + live screen content, re-sent only when its hash changes, with a flag), acts
-  through tools that wrap the app's own functions (confirmations, per-tool on/off, permissions), remembers notes, looks
-  at screenshots, takes attachments, renders Markdown, keeps chats, talks to any LLM (LM Studio by default). It also
-  loads the app's capabilities, runs agents and skills, and — in development — lets the in-app agent add tools.
-- **The capability folder** (`ai/` in the app, app-owned): *what* the app's AI can do — `index.json` naming tool
-  modules and toolsets, Agent Skills (`skills/<name>/SKILL.md`), agents (`agents/<name>.md`), permissions, the tool
-  defaults (`ai-tools.json`) and the starting memories (`ai-memory.json`).
-- **The lifecycle**: install → upgrade → validate → add → reconcile, safe to repeat. Framework files are replaced
-  only when unchanged; the app's own files are only ever added to or edited in place; a manifest
-  (`ai-enablement.json`) records what is where.
+- **The runtime**, copied into the app unchanged: the agent drawer. It slides in from the right and sees what the user
+  sees: app + page + live screen content, re-sent only when its hash changes, with a flag. It acts through tools that
+  wrap the app's own functions (confirmations, per-tool on/off, permissions). It also:
+  - remembers notes, looks at screenshots and takes attachments;
+  - keeps chats and talks to any LLM;
+  - loads the app's capabilities and runs its agents and skills.
 
-Everything lives in this skill folder (the folder that contains this `SKILL.md`). **Do not rewrite the runtime.**
+  There is **one runtime per stack**, and all of them do the same things (`spec/behaviour.md`).
+- **The capability folder** (`ai/` in the app, app-owned): *what* the app's AI can do. It holds `index.json`, tools
+  and toolsets, Agent Skills (`skills/<name>/SKILL.md`), agents (`agents/<name>.md`), permissions, the tool defaults
+  (`ai-tools.json`) and the starting memories (`ai-memory.json`). **The same format on every stack** (`spec/framework.md`).
+- **The lifecycle**: install → upgrade → validate → add → reconcile, safe to repeat.
+  - Framework files are replaced only when unchanged.
+  - The app's own files are only ever added to or edited in place.
+  - A manifest (`ai-enablement.json`) records what is where, and which stack.
+
+Everything lives in this skill folder (the folder that contains this `SKILL.md`). **Do not rewrite a runtime.**
 
 ## What is in this skill
 
 | Path | What it is |
 | --- | --- |
-| `assets/ai-agent/` | **The runtime** (1.6), copied into apps unchanged: `ai-agent.js` (`createAiAgent`, `fromDom`, `parseBlockValues`, `setControlValue`, `probeRelay`, `toMcpTool`, `loadCapabilities`…), `ai-agent.css`, `ai-agent.d.ts`, `core/` (context, sync, settings, prompt, transport, tools, memory, attachments, and the framework layer: `capabilities`, `agents`, `skills`, `permissions`, `schema`, `frontmatter`, `workspace`), `adapters/`, `ui/`, `skills/create-tool/` (the built-in authoring skill). |
-| `assets/relay/` | `relay.php` (PHP 8.1+) and `relay.mjs` (Node), copied unchanged, configured by a file; `relay.config.example.php`. |
+| `spec/` | **The portable contract**, the same for every stack. `framework.md` (concepts, formats, effects, permissions, ownership, the manifest), `context-sync.md` (the screen-sync protocol), `behaviour.md` (everything a runtime does, with its limits), `tool-catalog.md` (tools of compiled apps, as data). |
+| `stacks/<id>/STACK.md` | **One recipe per stack**: how each install step is done there. `web/` (HTML, PHP, React, Vue, Svelte, Angular, Next.js, Tauri, ASP.NET Core / Blazor), `rust-egui/` (planned), `dotnet-winforms/` (planned). Read only the one detect names. |
+| `assets/ai-agent/` | The **web runtime** (1.6): `ai-agent.js` (`createAiAgent`…), `ai-agent.css`, `ai-agent.d.ts`, `core/` (DOM-free logic), `adapters/`, `ui/`, `skills/create-tool/`. |
+| `assets/relay/` | Web relays: `relay.php` (PHP 8.1+) and `relay.mjs` (Node), configured by a file. |
 | `assets/templates/` | Starting points: `ai/index.json`, a tool module, a toolset, a `SKILL.md`, an agent file, the manifest. |
-| `examples/hello-world/` | **Reference integration**: a text editor with `ai-agent-setup.js` (mount + context hooks), `ai/` (three toolset modules over the editor's functions, two skills, two agents, permissions), `ai-enablement.json`. Read it before integrating. |
-| `scripts/detect.mjs` | **Run first**: what is in the app — runtime, relay, integration, capability folders, manifest (or the 1.x record), dev-time folders, features — and what to do. Read-only. |
-| `scripts/validate.mjs` | Loads the capability folder the way the runtime does; errors and warnings. Run after every change. |
-| `scripts/scaffold.mjs` | Creates a tool, toolset, skill or agent from the templates and registers it (never overwrites). |
-| `scripts/verify.mjs` | Headless Edge/Chrome check of the running app: console, hotkey, flag, typing, context size, tools, capabilities, memory, vision, attachments, layout, every Settings tab against its layout spec, and the read → change → re-read loop. |
-| `scripts/guards.mjs` | The runtime CSS's **layout guards** (pinned dialog chrome, host-CSS isolation): reports them; `--apply` adds the missing ones in place to an *edited* runtime copy and records the patch. |
-| `scripts/workspace.mjs` | Dev server for **in-app authoring**: the app's own agent reads its source and writes new tools (development only). |
-| `references/` | `framework.md` (concepts and formats), `capabilities.md` (**add a tool / toolset / skill / agent**), `in-app-authoring.md`, `upgrading.md` (**apps that already have it**, the manifest), `settings-layout.md` (the settings dialog's layout spec and host CSS), `tools.md`, `memory-and-vision.md`, `context-sync.md`, `frameworks.md`, `providers.md`, `api.md`, `checklist.md`, `architecture.md`. |
+| `examples/hello-world/` | **Reference integration (web)**: a text editor with `ai-agent-setup.js` and `ai/` (three toolsets over the editor, two skills, two agents, permissions). Read it before integrating. |
+| `scripts/detect.mjs` | **Run first**: the stack, and what is in the app (runtime, relay, integration, capability folders, manifest, dev-time folders, features). Says what to do. Read-only. |
+| `scripts/validate.mjs` | Loads the capability folder the way the runtime does (and the tool catalog on compiled stacks); errors and warnings. Run after every change. |
+| `scripts/scaffold.mjs` | Creates a tool, toolset, skill or agent from the templates and registers it. Never overwrites. |
+| `scripts/verify.mjs`, `scripts/guards.mjs`, `scripts/workspace.mjs` | Web: headless browser check of the running app; the runtime CSS's layout guards; the dev server for in-app authoring. |
+| `references/` | Web references: `capabilities.md` (**add a tool / toolset / skill / agent**), `upgrading.md` (**apps that already have it**, the manifest), `tools.md`, `memory-and-vision.md`, `frameworks.md`, `providers.md`, `api.md`, `settings-layout.md`, `in-app-authoring.md`, `checklist.md`, `architecture.md`. |
 | `CHANGELOG.md` | What each version changed, with **Upgrading** notes. |
 
 ## Step 0. Detect, then route (every time)
@@ -45,6 +49,16 @@ Everything lives in this skill folder (the folder that contains this `SKILL.md`)
 node <skill>/scripts/detect.mjs <app-root>
 ```
 
+**First, the `Stack` line.** It names the stack, where it came from, and whether the skill supports it. Then:
+
+| Stack line | Do |
+| --- | --- |
+| **supported** | Read `stacks/<id>/STACK.md` (that one only; for web, its Tauri or ASP.NET section when the host is one) and use it for every step below. |
+| **PLANNED** or **UNSUPPORTED** | **Stop before installing.** Never copy the web runtime into a native app, and never hand-write a drawer. Tell the user what detect said, and offer what works on any stack: the survey and plan (steps 1–2), and the `ai/` folder's skills, agents, toolsets and permissions. The recipe's "What to do today" has the details. |
+| not recognised, or `!` warnings (two native UIs, or a manifest that disagrees) | Ask the user which app and which stack, then record it in the manifest's `"stack"`. |
+
+**Then, the status:**
+
 | detect says | Do |
 | --- | --- |
 | **No AI agent found** | **Install**: steps 1–15 below. |
@@ -52,152 +66,135 @@ node <skill>/scripts/detect.mjs <app-root>
 | **CURRENT** | **Validate** (`scripts/validate.mjs <app-root>`), then do what the user asked. |
 | The user asks for a capability ("add a tool that…", "a skill for…", "an agent that…") | After the routing above: `references/capabilities.md`. |
 
-- The user's words set the scope ("just update the runtime", "add a tool", "add a Track Designer agent"); without one,
+- The user's words set the scope ("just update the runtime", "add a tool", "add a Track Designer agent"). Without one,
   propose the full upgrade or install.
-- **Layout guards — every run on an app that has the agent** (install, upgrade, add a tool, anything): read detect's
-  `Layout guards` lines (`layoutGuards` with `--json`). A guard **MISSING** is fixed in this run, whatever the task:
-  an unchanged runtime copy is replaced (`references/upgrading.md`, U4); an edited one gets the guard blocks in place
-  with `node <skill>/scripts/guards.mjs <app-root> --apply` (its other edits stay; the patch is recorded in the
-  manifest). Tell the user in one line, e.g. "Also fixed the settings dialog: its tabs no longer clip and the page's
-  own CSS no longer leaks in (runtime CSS 1.6.1)." Details: `references/upgrading.md`, "Layout guards"; the spec:
-  `references/settings-layout.md`.
-- `.claude/`, `.github/agents`, `.agents/skills`, `.codex/` hold the *coding agent's* skills and agents — not the
+- Web: **layout guards** are checked on every run on an app that has the agent. A MISSING guard is fixed in this run,
+  whatever the task (`stacks/web/STACK.md` §8).
+- `.claude/`, `.github/agents`, `.agents/skills` and `.codex/` hold the *coding agent's* skills and agents, not the
   app's. Leave them alone; the app's live in its capability folder.
-- Without Node: search for `ai-agent.js` containing `export const VERSION`, for `createAiAgent(`, for an `index.json`
-  with `"format": "ai-enablement/1"`, and for `ai-enablement.json` / `ai-agent.integration.json`.
+- Without Node, look for these by hand:
+  - web: `ai-agent.js` containing `export const VERSION`, and `createAiAgent(`;
+  - Rust: a `Cargo.toml` with `eframe`/`egui`;
+  - C#: a `.csproj` with `<UseWindowsForms>`;
+  - any stack: an `index.json` with `"format": "ai-enablement/1"`, and `ai-enablement.json`.
 
 ## Install
 
+Each step's rule below holds on every stack. **How** to do it on this stack is in `STACK.md`, under the section with
+the same number.
+
 ### 1. Survey the app (read-only)
 
-Find out, and keep notes:
+Find out, and keep notes (stack-specific places to look: `STACK.md` §1):
 
-- **Stack and entry points**: plain HTML/PHP, or a framework (React/Vite, Next.js, Vue, Svelte, Angular…); where the root layout is rendered.
-- **Production stack**: web server (Apache, Nginx, Node, static hosting), PHP or Node, long-running processes allowed, how development differs. This decides the relay (step 13). Never plan on `.htaccess` or rewrites.
-- **Where static assets are served from** (`public/`, `static/`, `assets/`) or whether code is bundled from `src/`; how caches are busted.
-- **Every page/view/route and what it shows**: which state/store/API data renders it, what the user edits or selects, how often it changes.
-- **The header/toolbar** for an "Ask AI" button and the **main content container** that makes room for the drawer; fixed-width grids, wide toolbars, fixed elements.
-- **What the user can do on each page** — the action surface for tools: API clients, store actions, services, handlers behind buttons/menus/forms, navigation, controls with their real ranges. Classify each as read / write / destructive / external / system. Note **one object** that reaches them (the store, a service layer, the editor instance): it becomes `host`.
-- **Kinds of work** users repeat in several steps (candidates for skills) and **distinct roles** (candidates for agents) — usually none at first.
-- **Global keyboard handlers** and **modal dialogs** (`showModal()`, focus traps).
-- **What the agent could not know from the screen**: shortcuts, hidden features, conventions — starting memories.
-- **How the view is drawn** (DOM, canvas, WebGL), iframes, phones, `Permissions-Policy`, `Content-Security-Policy`.
-- **Backend**, auth/CSRF, deployment beyond localhost. **Existing AI code** (do not build a second panel; ask). **Theme**.
+- **Stack and entry points**: where the root UI is built.
+- **Every page/view/screen and what it shows**: which state renders it, what the user edits or selects, how often it
+  changes.
+- **What the user can do on each page**: the action surface for tools.
+  - Classify each action as read / write / destructive / external / system.
+  - Note **one object** that reaches them (the store, a service layer, the app struct): it becomes `host`.
+- **Policy constraints**: what the app (its spec, its domain, its law) allows an AI to see and do. Look for:
+  - data that must not reach a model, or only with consent;
+  - allowed model providers (local only?);
+  - where data may persist (no plaintext files? an encrypted store?);
+  - actions reserved for a person (approve, send, export, delete);
+  - whether model tool calling is allowed at all;
+  - what must happen on lock or sign-out.
+
+  **When the plan would break one, stop and ask. Never override an app's own rules.**
+- **Kinds of work** users repeat in several steps (candidates for skills) and **distinct roles** (candidates for
+  agents). Usually there are none at first.
+- **What the agent could not know from the screen**: shortcuts, hidden features, conventions. These become starting
+  memories.
+- **Existing AI code**: model clients, tool layers, chat panels. Do not build a second panel; reuse what fits, and ask.
+- **Layout, keyboard handling, modal dialogs, theme, how the view is drawn, tests.**
 
 ### 2. Write the plan
 
 Draft and show the user in a few lines (proceed unless they object):
 
-- **App context**: name, purpose (from the README/UI), capabilities, limits — lean, generated from the app's own data modules.
-- **Per page**: `id`, `title`, `purpose`, **content** (what represents the screen), **view** (selection, cursor, filters), the change signal.
-- **System prompt**: persona and answer rules for this domain (start from `DEFAULT_SYSTEM_PROMPT`).
-- **Tool plan**: per page, the tools — name, what it wraps (via `host`), effect, parameters with real ranges — grouped
-  into **toolsets**, and what is left out on purpose (payments, security settings, messages to others, bulk deletes).
-  Ask which start **on**.
-- **Skills and agents** (optional): a skill per multi-step kind of work worth writing down; agents only for distinct
-  roles (a "Proofreader" that may not rewrite). One implicit agent is the default.
+- **App context**: name, purpose (from the README/UI), capabilities, limits. Keep it lean, generated from the app's own
+  data.
+- **Per page**: `id`, `title`, `purpose`, **content** (what represents the screen), **view** (selection, cursor,
+  filters), the change signal.
+- **System prompt**: persona and answer rules for this domain (start from the runtime's default).
+- **Tool plan**:
+  - Per page, the tools: name, what it wraps (via `host`), effect, parameters with real ranges.
+  - Group them into **toolsets**.
+  - Say what is left out on purpose (payments, security settings, messages to others, bulk deletes, everything the
+    policy constraints reserve).
+  - Ask which tools start **on**.
+- **Skills and agents** (optional): a skill for each multi-step kind of work worth writing down. Add agents only for
+  distinct roles (a "Proofreader" that may not rewrite). One implicit agent is the default.
 - **Permissions**: anything the app must always confirm (`ask`) or never let the agent do (`deny`).
-- **Memory plan**, **vision plan** (screen capture or a `screenshot` hook), **attachments** (`maxFileChars` for small
-  models), **code/reply actions**, **transport** (direct or relay).
+- **Memory, vision and attachments plans**, **code/reply actions**, **transport** (direct, relay, local only).
 
 ### 3. Install the runtime
 
-Copy the whole `assets/ai-agent/` folder into the app, unchanged, next to the static assets (`assets/ai-agent/`,
-`public/ai-agent/`) — or `src/lib/ai-agent/` for bundled apps. It is framework-owned: configure it through options,
-never edit it (if a change is truly needed, make it generic and tell the user so it can be folded back into the skill).
-Version the asset URLs or serve them `no-cache`.
+Copy this stack's runtime into the app **unchanged** (`STACK.md` §3). It is framework-owned: configure it through
+options and hooks, never edit it. If a change is truly needed, make it generic and tell the user, so it can be folded
+back into the skill.
 
 ### 4. Create the capability folder
 
-```bash
-node <skill>/scripts/scaffold.mjs <served-dir>/ai init       # index.json, ai-tools.json, ai-memory.json
-```
-
-It must be **served** next to the app (the runtime fetches its Markdown and JSON and imports tool modules), e.g.
-`public/ai/`. Bundled apps whose modules live in `src/` keep the folder under `public/` for skills and agents and either
-serve tool modules too or import them statically and pass them as `tools` (`references/framework.md`, "Bundled apps").
+`node <skill>/scripts/scaffold.mjs <dir>/ai init` writes `index.json`, `ai-tools.json` and `ai-memory.json`. Where the
+folder goes, and how the runtime reads it (served, bundled, embedded), is in `STACK.md` §4.
 
 ### 5. Mount the agent once
 
-One integration module (e.g. `assets/js/ai-agent-setup.js`, `src/ai/agent.ts`), loaded with `import()` and a catch so
-the app works without it:
+One app-owned integration module creates the agent once, with:
 
-```js
-// in the app's entry script
-import('./ai-agent-setup.js').then((m) => m.mountAgent()).catch((e) => console.warn('AI agent unavailable', e));
-```
+- `appId`: unique per app and never changed;
+- the app context, the pages, the system prompt;
+- the capability folder, `host`, and the hooks the policy constraints need.
 
-```js
-// assets/js/ai-agent-setup.js
-import { createAiAgent, DEFAULT_SYSTEM_PROMPT } from '../ai-agent/ai-agent.js';
-import { store } from './store.js';                          // the object the tools call: `host`
-import { buildItemsContent } from './ai-content.js';         // pure, unit-tested (step 6)
-import { VIEWS } from './views.js';
-
-export function mountAgent() {
-  const agent = createAiAgent({
-    appId: 'inventory',                          // unique per app, never changed (namespaces users' data)
-    title: 'Inventory assistant',
-    toggle: '#ask-ai',
-    push: 'main',
-    capabilities: 'assets/ai/index.json',        // tools, toolsets, skills, agents, permissions, defaults, memories
-    host: store,                                 // tools: run(args, { host })
-    // workspace: location.hostname === '127.0.0.1',   // development: in-app tool authoring (in-app-authoring.md)
-    app: { name: 'Inventory', purpose: 'Track stock levels and purchase orders.', capabilities: VIEWS.map((v) => `${v.title}: ${v.summary}`), limits: ['Cannot place orders with suppliers'] },
-    page: {
-      id: 'items', title: 'Items', purpose: 'Stock items with quantity, location and reorder level.',
-      content: () => buildItemsContent(store.getState()),      // what is on screen (hashed)
-      view: () => ({ selected: store.getState().selectedIds }), // volatile (not hashed)
-    },
-    systemPrompt: `${DEFAULT_SYSTEM_PROMPT}\n\nYou are the inventory assistant. …domain rules…`,
-    welcome: 'I can see the items on your screen. Ask me about stock or reorders.',
-    defaults: { provider: 'lmstudio' },
-  });
-  store.subscribe(() => agent.contextChanged());
-  document.getElementById('ask-ai').hidden = false;
-  return agent;
-}
-```
-
-Client-side only, once. `agent.ready` resolves when the capability index, tool config, memory file and relay probe are
-in. Recipes per framework: `references/frameworks.md`. Every option and method: `references/api.md`.
+Load it so a failure cannot break the app. See `STACK.md` §5; for web, also `examples/hello-world/ai-agent-setup.js`.
 
 ### 6. Wire every page
 
-`agent.setPage({ id, title, purpose, content, view })` on navigation. **content** is what the user sees, compact and
-deterministic, from a **pure, unit-tested builder** (state → text): the app's own state, not the DOM; the precision and
-labels the UI shows; stable order; no clocks or random ids (volatile bits go in **view**); what open dialogs show; never
-secrets. `fromDom('main')` when there is no state model. Details: `references/context-sync.md`.
+Set the page on navigation (`STACK.md` §6). **content** is what the user sees, compact and deterministic, from a
+**pure, unit-tested builder** (state → text). The builder:
+
+- reads the app's own state, never widgets or the DOM;
+- uses the precision and labels the UI shows;
+- keeps a stable order;
+- leaves out clocks and random ids (volatile bits go in **view**);
+- includes what open dialogs show;
+- never includes secrets.
+
+Protocol: `spec/context-sync.md`.
 
 ### 7. Signal changes
 
-`agent.contextChanged()` wherever content can change (store subscription, fetch completion, edits, worker messages) —
-debounced with a max wait, so continuous updates need no throttle. `watch: 1500` polls as a last resort.
-`agent.onContextStatus(fn)` mirrors the flag in the app.
+Call the change signal wherever content can change (`STACK.md` §7). It is debounced with a max wait, so continuous
+updates need no throttle.
 
 ### 8. Fit the host app
 
-Typing never reaches host shortcuts (`isolateKeys`); capture-phase handlers skip `.aia-scope`. `dialogs: 'dock'` for
-`showModal()`. Layout fixes under `html.aia-drawer-open` (`--aia-push-width`). Theme with `--aia-*` on `.aia-scope`.
-The page's own element CSS (`label`, `button`, `input`, `p`, `body { text-align }`…) does not reach the agent's UI: never
-"fix" the drawer or the settings dialog from app CSS (`references/settings-layout.md`).
+Typing in the agent never reaches the app's shortcuts. The drawer makes room for itself, uses the app's theme, and
+stays out of the app's dialogs. How: `STACK.md` §8.
 
 ### 9. Build the tools
 
-One tool module per toolset (or per tool) in `ai/tools/`, following `references/capabilities.md` and `references/tools.md`:
+Tools and toolsets follow `spec/framework.md`; recipes in `references/capabilities.md` and `references/tools.md`; the
+module or code shape in `STACK.md` §9.
 
 ```bash
 node <skill>/scripts/scaffold.mjs <ai-dir> tool filter_orders --effect write --description "Show only orders with this status."
 ```
 
-- Each tool calls a function the app **already has**, through `host` (`run(args, { host })`), or drives the real control
-  with `setControlValue`. Never reimplement business logic; never add a tool the UI does not offer the user.
-- Accurate `effect` (read / write / destructive / external / system; when unsure, the stronger), short `description`,
-  parameters (`parameters` shorthand or a JSON Schema `inputSchema`) with real ranges and `required`, an explicit
-  `maxLength` on long text, `pages` / `when` for where it applies, a short factual result.
-- Group related tools as a toolset (`export default { name, title, description, tools: [...] }`); register modules in
-  `index.json`; record which start on in `ai-tools.json`; add `permissions` for what must always ask or never run.
-- Unit-test each module with `host` mocked.
+- Each tool calls a function the app **already has**, through `host`. Never reimplement business logic, never bypass
+  the app's own checks, and never add a tool the UI does not offer the user.
+- Give each tool:
+  - an accurate `effect` (read / write / destructive / external / system; when unsure, the stronger);
+  - a short `description`;
+  - parameters with real ranges and `required`, and an explicit `maxLength` on long text;
+  - `pages` / `when` for where it applies;
+  - a short factual result.
+- Group related tools as toolsets. Record which start on in `ai-tools.json`. Add `permissions` for what must always ask
+  or never run.
+- Unit-test each toolset with `host` mocked. On compiled stacks, also add the **tool catalog test**
+  (`spec/tool-catalog.md`).
 
 ### 10. Skills and agents (when the plan has them)
 
@@ -207,101 +204,115 @@ node <skill>/scripts/scaffold.mjs <ai-dir> agent track-designer --description "�
 ```
 
 A skill is numbered steps for one kind of work (which tools, in which order, what to check), in the Agent Skills
-format; long material in its `references/`. An agent composes existing tools, toolsets and skills with instructions,
-permissions, context layers and memory policy — it never defines tools. Formats: `references/framework.md`.
+format, with long material in its `references/`. An agent composes existing tools, toolsets and skills with
+instructions, permissions, context layers and memory policy. It never defines tools. Formats: `spec/framework.md`.
+These files are the same on every stack.
 
 ### 11. Memory, vision and attachments
 
-All three work once the runtime is in. Write `ai-memory.json` (short notes no screen shows, never secrets); keep the
-browser's screen capture or pass a `screenshot` hook for canvas/WebGL views; set `defaults.maxFileChars` for small-
-context models and `readFile` only for the app's own formats. `references/memory-and-vision.md`.
+All three come with the runtime; the plan and the policy constraints decide what is on.
+
+- Write `ai-memory.json`: short notes no screen shows, never secrets.
+- Decide how screenshots are taken, or switch them off.
+- Size file limits for small-context models.
+
+How: `STACK.md` §11; rules: `spec/behaviour.md` §7–8.
 
 ### 12. App-specific actions (optional)
 
-`codeActions` (buttons on fenced code blocks) and `replyActions` (on whole replies); values applied through the real
-controls with `parseBlockValues` + `setControlValue`. Anything that changes data uses the app's own confirmation UI.
+Buttons on the agent's code blocks and replies, applied through the app's real controls. Anything that changes data
+uses the app's own confirmation UI. See `STACK.md` §12.
 
-### 13. Relay (only when needed)
+### 13. Transport
 
-Deployed beyond localhost, server-held keys, or providers that block browsers: copy `relay.php` or `relay.mjs`
-unchanged (framework-owned), app settings in its config file (local mode by default; public mode with a fixed preset,
-same-origin, rate limits). In the app: `relayProbe: true, defaults: { relayUrl: 'api/relay.php' }`. `references/providers.md`.
+Direct to the model, through a relay (web, when deployed or when keys must stay on a server), or restricted to local
+models where the policy says so. See `STACK.md` §13.
 
 ### 14. Verify
 
 ```bash
-node <skill>/scripts/validate.mjs <app-root>                                  # the capability folder
-node <skill>/scripts/verify.mjs http://127.0.0.1:8787/ --change "<js that changes the screen>"   # the running app
+node <skill>/scripts/validate.mjs <app-root>          # the capability folder (and the tool catalog), the manifest, the stack
 ```
 
-(`--no-llm` without a model.) Then by hand: no console errors; the toggle and `Ctrl+I`; every Settings tab (the tabs stay
-visible, the layout matches `references/settings-layout.md`); Settings > Context shows the
-intended app/page/view/snapshot at a size the model fits; "Read the page" then "Page unchanged"; navigation; a tool
-call with its confirmation and roll-down; the agent picker and a skill (`/name`) if any; memory, a screenshot, an
-attached file. Full list: `references/checklist.md`.
+Then the stack's own checks (`STACK.md` §14): unit tests, the drawer flow against a mock or real model, and, by hand at
+1920×1080, every Settings tab and the sync sequence:
+
+1. "Read the page" → *synced*;
+2. change the screen → *dirty*;
+3. "Page unchanged";
+4. a tool call with its confirmation;
+5. the agent picker and a skill (`/name`), if any;
+6. memory, a screenshot, an attached file, as planned.
+
+Full list: `references/checklist.md`.
 
 ### 15. Manifest and report
 
-Write **`ai-enablement.json`** at the app root (`references/upgrading.md`, "The manifest"): versions, `appId`, the
-framework files (runtime, relay), the capability folder and what it holds, the integration files, features, declined
-items, plans in brief. Never secrets. Tell the user: the files added, the context and tool plans (which tools are on),
-skills and agents, memories, screenshots, attachments, how to open it, how to configure the model (LM Studio needs its
-server started with CORS and ≥ 8k context), the relay, and anything you could not verify.
+Write **`ai-enablement.json`** at the app root (`references/upgrading.md`, "The manifest"). It records:
+
+- `"stack"` and versions, `appId`;
+- the framework files (runtime, relay), the capability folder and what it holds, the integration files;
+- features, declined items, plans in brief.
+
+Never secrets. Tell the user:
+
+- the files added, the context and tool plans (which tools are on), skills and agents;
+- memories, screenshots, attachments;
+- how to open the agent and how to configure the model (LM Studio needs its server started, ≥ 8k context, and on the
+  web CORS);
+- the transport;
+- anything you could not verify.
 
 ## Add or change a capability
 
-On an app that has the framework (detect: CURRENT; capability folder present — or adopt one first,
+On an app that has the framework (detect: CURRENT, capability folder present; or adopt one first,
 `references/upgrading.md`, "Adopting the framework"). `references/capabilities.md` has the recipes:
 
-- **Tool** — "add a tool that lets the AI inspect the current track": find the app function, choose the effect and
-  parameters, `scaffold.mjs … tool`, write it over `host`, add it to `ai-tools.json`, unit-test, validate.
-- **Toolset**, **skill**, **agent** — scaffold, write, reference by name, validate. Compose; never duplicate.
-- **Context**, **memory**, **permissions**, **prompt** changes — edit the integration or the index.
+- **Tool** ("add a tool that lets the AI inspect the current track"):
+  1. find the app function;
+  2. choose the effect and parameters;
+  3. `scaffold.mjs … tool`, then write it over `host` (the stack's shape: `STACK.md` §9);
+  4. add it to `ai-tools.json`;
+  5. unit-test it; on compiled stacks, refresh the catalog (`AI_CATALOG_UPDATE=1`);
+  6. validate.
+- **Toolset**, **skill**, **agent**: scaffold, write, reference by name, validate. Compose; never duplicate.
+- **Context**, **memory**, **permissions**, **prompt** changes: edit the integration or the index.
 
 Preserve what the app has: never overwrite an app-owned file wholesale; edit it in place.
 
 ## In-app authoring (the app's AI adds tools)
 
-`node <skill>/scripts/workspace.mjs <app-root>` serves the app in development with a workspace endpoint; with
-`workspace: true` in the integration, the in-app agent gets `describe_host`, `list_source_files`, `read_source_file`,
-`search_source`, `write_ai_file` (always confirmed, with a diff), `reload_capabilities`, and the built-in
-`create-tool` skill. The developer commits what it wrote. Setup and safety: `references/in-app-authoring.md`.
+Web: `node <skill>/scripts/workspace.mjs <app-root>` serves the app in development with a workspace endpoint. With
+`workspace: true` in the integration, the in-app agent gets:
+
+- `describe_host`, `list_source_files`, `read_source_file`, `search_source`;
+- `write_ai_file` (always confirmed, with a diff);
+- `reload_capabilities`;
+- the built-in `create-tool` skill.
+
+The developer commits what it wrote. Setup and safety: `references/in-app-authoring.md`. Compiled stacks cannot load
+new code at run time; there, in-app authoring is planned for skills, agents, toolsets and permissions only.
 
 ## Rules
 
-- **Ownership**: the runtime folder and relay files are framework-owned — copied unchanged, replaced only when detect
-  says they are unchanged, reconciled when edited. Everything else (integration, content builders, the capability
-  folder, relay config, CSS) is app-owned — added to, edited in place, never replaced wholesale.
-- One agent instance per app, client-side, loaded so a failure cannot break the app; `appId` never changes. An app
-  that already has the agent is upgraded, never rebuilt.
+- **Stack**: follow the recipe detect names. Never put one stack's runtime into another stack's app.
+- **Ownership**: the runtime and relay files are framework-owned. They are copied unchanged, replaced only when
+  detect says they are unchanged, and reconciled when edited. Everything else is app-owned and is added to or edited in
+  place, never replaced wholesale. App-owned includes: the integration, the content builders, the capability folder,
+  the relay config, styles.
+- **One agent per app**:
+  - one instance, loaded so a failure cannot break the app;
+  - `appId` never changes;
+  - an app that already has the agent is upgraded, never rebuilt.
 - Context is what the user sees, never secrets; deterministic content from a tested pure builder.
-- Tools wrap the app's own functions with the user's own permissions; changes are confirmed by default; destructive,
-  external and system tools start off; the app's own confirmations and server checks stay.
-- Skills and agents compose what exists; formats follow Agent Skills and the agent-file convention — no proprietary
-  extras where the format already has a field.
-- Memory holds notes, never secrets or instructions. Screenshots and attachments go to the model provider only when
-  the user sends them (`screenshots: false` / `attachments: false` where they must not).
-- The workspace is development-only; it never ships with the app.
+- **Tools**:
+  - they wrap the app's own functions with the user's own permissions;
+  - changes are confirmed by default;
+  - destructive, external and system tools start off;
+  - the app's own confirmations, checks and policy constraints stay.
+- Skills and agents compose what exists. Formats follow Agent Skills and the agent-file convention, with no
+  proprietary extras where the format already has a field.
+- **Memory** holds notes, never secrets or instructions. **Screenshots and attachments** go to the model provider only
+  when the user sends them (switched off where they must not).
+- The development workspace is development-only; it never ships with the app.
 - Do not modify unrelated parts of the app. Do not invent capabilities in the app context.
-
-## Quick API
-
-```
-createAiAgent(options) -> agent        options: appId, title, app, page, systemPrompt, welcome, suggestions, toggle,
-                                                push, hotkey, theme, width, watch, debounceMs, debounceMaxMs, isolateKeys,
-                                                dialogs, devWarnings, relayProbe, contextWarnTokens, tools, toolsConfig,
-                                                host, capabilities, agents, skills, toolsets, permissions, agent, workspace,
-                                                memory, memoryFile, memorySave, screenshots, screenshot, screenshotMaxEdge,
-                                                attachments, readFile, codeActions, replyActions, defaults, relayHeaders,
-                                                saveChats, resume, mount
-agent.setApp · setPage · setContent · setView · contextChanged · refreshContext · getContextStatus · onContextStatus
-agent.tools.list · register · unregister · setEnabled · run · exportConfig · toolsets · mcp
-agent.agents.list · current · use(name)        agent.skills.list · activate(name) · active
-agent.capabilities.reload · problems · index    agent.workspace()
-agent.memory.list · add · update · remove · clear · export · import     agent.screenshot() · agent.attach(files)
-agent.open · close · toggle · isOpen · ask · stop · newChat · openSettings · systemPrompt · ready · relayInfo · destroy
-agent.on('open'|'close'|'send'|'reply'|'error'|'context'|'settings'|'relay'|'tool'|'tool-state'|'memory'|'screenshot'|'attach'|'agent'|'skill'|'capabilities'|'workspace', fn)
-fromDom · parseBlockValues · setControlValue · probeRelay · toMcpTool · fromJsonSchema · loadCapabilities · parseSkill · parseAgent
-```
-
-Full reference with types: `references/api.md` and `assets/ai-agent/ai-agent.d.ts`.

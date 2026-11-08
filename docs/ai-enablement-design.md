@@ -199,6 +199,50 @@ files and misnamed tool-config keys. The new tool is loaded without a page reloa
 | 3 | **Multi-agent**: an agent handing a sub-task to another (`delegate` built-in). | |
 | 3 | **Finer permissions**: per-argument rules, per-user policy from the app's backend. | |
 
+## 7. Several stacks (skill 3.0)
+
+**Why.** The skill was written for web apps. Run on a native Rust app (KAROS Therapy Session Intelligence: egui/eframe
+0.37, a Cargo workspace), detect said "No AI agent found: INSTALL — follow the normal workflow". The workflow would
+have copied a DOM runtime into an egui window. The same holds for a WinForms app. The audit showed the skill was
+already two things that nothing named:
+
+- **A portable framework**: the capability folder, effects and permissions, the context-sync protocol, prompt
+  assembly, the lifecycle, the ownership rule, the manifest.
+- **A web implementation**: the JS/DOM runtime, JS tool modules, CDP verification, CSS layout guards, the PHP/Node
+  relay, and detection by JS markers.
+
+**Decisions.**
+
+| Decision | Choice |
+| --- | --- |
+| One skill or several | One skill, three layers. `spec/` is the portable contract. `stacks/<id>/STACK.md` holds one recipe per stack, numbered like SKILL.md's steps. There is one runtime per stack. Separate skills would duplicate the lifecycle, the formats and the manifest, and drift. |
+| Stacks | `web` (hosts: static, php, node, **tauri**, **aspnet**), `rust-egui`, `dotnet-winforms`. Tauri and ASP.NET/Blazor render HTML, so they use the JS runtime; only their `host` binding and transport differ. WPF, WinUI, MAUI and other Rust UIs are recognised, with no recipe yet. |
+| Native UI | A native drawer per language, as a no-UI core library plus a thin UI crate/project (egui panel, WinForms `UserControl`). Hosting the web drawer in a webview was rejected: it is awkward in egui, looks foreign, and fights native keyboard and DPI handling. |
+| Delivery | Vendored copies (`crates/ai-enablement-*`, `src/AiEnablement.*`), framework-owned and fingerprinted like `assets/ai-agent/`. The crate takes `egui = { workspace = true }`, so it always matches the app's egui. |
+| Tools in compiled apps | Code: contract and handler together, registered inline. A test in the app generates `ai/tools.catalog.json` and fails when it is stale. `validate.mjs` reads it, so references are checked without compiling (`spec/tool-catalog.md`). |
+| Same product | `spec/behaviour.md`, and frozen conformance vectors (`spec/conformance/`, 16 suites) that every runtime runs. The JS runtime is the reference. |
+| Policy hooks | Native runtimes take a provider policy (for example loopback only), a `before_send` gate (consent), and settings, key, memory and chat stores (or none), plus `reset()` on lock. KAROS needs all of them: its spec forbids cloud inference, requires consent before patient text reaches a model, keeps all patient data in an encrypted vault, and (today) forbids model tool calling. The portable survey gained a **policy constraints** item, and a plan that would break one stops and asks. |
+| References | Only the portable docs moved (`framework.md`, `context-sync.md` → `spec/`). The web references stay in `references/`, because runtime files mention those paths, and editing a runtime file changes its release fingerprint. |
+
+**Delivered in 3.0.0 (phase A).**
+
+- Stack detection and routing: STOP on planned stacks, build output skipped.
+- SKILL.md as a router; the web, rust-egui and dotnet-winforms recipes.
+- `spec/behaviour.md`, `spec/tool-catalog.md`, the conformance vectors with their export and test.
+- A tool-catalog-aware `validate`, a stack-aware `scaffold`, `"stack"` in the manifest, installers that skip build
+  output.
+- No runtime change.
+
+**Next.**
+
+| Phase | What | Exit |
+| --- | --- | --- |
+| B | **Rust core** (`assets/rust/ai-enablement-core`): context sync, prompt, tool registry and argument validation, permissions, the capability loader (embedded or disk), skills, agents, memory, the OpenAI-compatible adapter, storage and policy traits; then Anthropic and Gemini. Starts by extracting the tool loop from `ui/drawer.js` into a DOM-free `core/session.js` (runtime 1.7.0, additive), and by adding vectors for adapters, request messages and tool-loop decisions. | `cargo test` passes every vector; the tool loop runs against `tests/fixtures/fake-upstream.mjs`. |
+| C | **egui drawer** (`ai-enablement-egui`) and `examples/hello-world-egui` (the same `ai/` skills and agents, Rust tools). The rust-egui recipe goes from planned to supported (detect flips it automatically when `assets/rust/ai-enablement-egui/Cargo.toml` exists). | A kittest flow at 1920×1080; live with LM Studio. |
+| D | **KAROS pilot**, after its spec decision: a context-only assistant, or an amendment allowing in-app read tools plus proposal-based writes. | `cargo test --workspace`; the drawer screenshot reviewed. |
+| E | **.NET core + WinForms panel**, against the same vectors. | `dotnet test`; the example maximised at 1920×1080. |
+| F | Data-only in-app authoring for native stacks; WPF; an optional relay adapter for native apps; publishing crates and packages if vendoring becomes a burden. | |
+
 ## The directional spec, in brief
 
 Tools (machine-readable contracts, validated inputs, structured outputs, MCP/JSON Schema compatible), toolsets,

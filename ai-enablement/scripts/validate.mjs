@@ -50,8 +50,44 @@ function listFiles(dir, depth = 3) {
   return out;
 }
 
-/** Validate one capability index (absolute path). */
-export async function validateIndex(indexFile) {
+export const CATALOG_FORMAT = 'ai-enablement/tools/1';
+const noRun = () => undefined;
+
+/**
+ * The tool catalog an index names ("toolCatalog"), as inline index entries: each tool with a stand-in handler (the
+ * real one is the app's code), each toolset as a toolset of names. null when the index names none.
+ */
+function readToolCatalog(index, dir, errors) {
+  if (index.toolCatalog === undefined) return null;
+  const name = String(index.toolCatalog);
+  let cat;
+  try { cat = JSON.parse(fs.readFileSync(path.resolve(dir, name), 'utf8')); } catch (e) {
+    errors.push(`${name} (the tool catalog) could not be read (${e.code === 'ENOENT' ? 'missing: run the app\'s catalog test with AI_CATALOG_UPDATE=1' : e.message}).`);
+    return [];
+  }
+  if (cat.format !== CATALOG_FORMAT) errors.push(`${name}: "format" must be "${CATALOG_FORMAT}" (spec/tool-catalog.md).`);
+  const entries = [];
+  for (const t of Array.isArray(cat.tools) ? cat.tools : []) {
+    if (!t || typeof t !== 'object' || Array.isArray(t)) { errors.push(`${name}: a tool entry is not an object.`); continue; }
+    entries.push({ ...t, run: noRun, source: name });
+  }
+  for (const s of Array.isArray(cat.toolsets) ? cat.toolsets : []) {
+    if (s && typeof s === 'object' && Array.isArray(s.tools)) entries.push({ name: s.name, title: s.title, description: s.description, tools: s.tools.filter((x) => typeof x === 'string') });
+    else errors.push(`${name}: a toolset entry needs a name and a list of tool names.`);
+  }
+  if (!Array.isArray(cat.tools)) errors.push(`${name}: "tools" must be a list.`);
+  return entries;
+}
+
+/** A missing-tool reference: on a compiled stack without a tool catalog it cannot be checked, so it is a warning. */
+const TOOL_REFERENCE = /: tool "[^"]+" does not exist\.$|allowed-tools names "[^"]+", which is not a tool/;
+
+/**
+ * Validate one capability index (absolute path).
+ * @param {{ toolsFromCode?: boolean }} [opts] toolsFromCode: the app's tools are code (Rust, C#): without a tool catalog,
+ *   references to tools are reported as unchecked warnings instead of errors.
+ */
+export async function validateIndex(indexFile, { toolsFromCode = false } = {}) {
   const errors = [];
   const warnings = [];
   const notes = [];
@@ -60,7 +96,13 @@ export async function validateIndex(indexFile) {
   let index;
   try { index = JSON.parse(fs.readFileSync(indexFile, 'utf8')); } catch (e) { return { index: indexFile, errors: [`index.json is not valid JSON (${e.message}).`], warnings, notes, counts: {} }; }
 
-  const loaded = await loadCapabilities(pathToFileURL(indexFile).href, {
+  // A compiled app's tools are code; the generated tool catalog (spec/tool-catalog.md) stands in for them here.
+  const catalog = readToolCatalog(index, dir, errors);
+  const source = catalog
+    ? (() => { const { toolCatalog, ...rest } = index; return { ...rest, tools: [...(Array.isArray(rest.tools) ? rest.tools : []), ...catalog] }; })()
+    : pathToFileURL(indexFile).href;
+  const loaded = await loadCapabilities(source, {
+    base: pathToFileURL(indexFile).href,
     host: hostStandIn(),
     fetchText: fileText,
     importModule: (u) => import(u),
@@ -87,8 +129,11 @@ export async function validateIndex(indexFile) {
     else if (def.effect && !EFFECT_NAMES.includes(def.effect)) errors.push(`tool "${def.name}" (${def.source || 'inline'}): effect "${def.effect}" is not one of ${EFFECT_NAMES.join(', ')} (the runtime treats it as "write").`);
   }
   const linked = linkToolsets(tools, loaded.toolsets);
-  errors.push(...linked.problems);
-  errors.push(...checkReferences({ agents: loaded.agents, tools, toolsets: linked.toolsets, skills: loaded.skills, defaultAgent: loaded.defaultAgent }));
+  const references = [...linked.problems, ...checkReferences({ agents: loaded.agents, tools, toolsets: linked.toolsets, skills: loaded.skills, defaultAgent: loaded.defaultAgent })];
+  for (const p of references) {
+    if (toolsFromCode && !catalog && TOOL_REFERENCE.test(p)) warnings.push(`${p.replace(/\.$/, '')} (not checked: the tools are code and there is no tool catalog yet, spec/tool-catalog.md).`);
+    else errors.push(p);
+  }
 
   // The tool config and the memory file it names.
   if (typeof index.toolsConfig === 'string') {
@@ -155,11 +200,21 @@ export async function validate(target) {
   const d = isIndex ? null : detect(root);
   const indexes = isIndex ? [abs] : d.capabilities.map((c) => path.join(root, ...c.file.split('/')));
   const results = [];
-  for (const f of indexes) results.push(await validateIndex(f));
+  const toolsFromCode = !!d && (d.stack?.family === 'rust' || d.stack?.family === 'dotnet');
+  for (const f of indexes) results.push(await validateIndex(f, { toolsFromCode }));
 
   const app = { errors: [], warnings: [], notes: [] };
   if (d) {
     if (!indexes.length) app.notes.push('No capability index (index.json with "format": "ai-enablement/1") in this app yet: scaffold.mjs <folder> init creates one.');
+    for (const w of d.stack?.warnings || []) app.warnings.push(`Stack: ${w}.`);
+    // Compiled stacks: tools are code, so references to them can only be checked against the generated catalog.
+    if (d.stack?.family === 'rust' || d.stack?.family === 'dotnet') {
+      for (const f of indexes) {
+        let idx = {};
+        try { idx = JSON.parse(fs.readFileSync(f, 'utf8')); } catch { continue; }
+        if (idx.toolCatalog === undefined) app.warnings.push(`${path.relative(root, f).split(path.sep).join('/')}: on ${d.stack.id} the tools are code; name the generated tool catalog ("toolCatalog": "tools.catalog.json", spec/tool-catalog.md) so references to tools can be checked.`);
+      }
+    }
     const manifestFile = d.manifest ? path.join(root, ...d.manifest.split('/')) : null;
     if (!d.manifest && d.legacyRecord) app.warnings.push(`${LEGACY_RECORD} is the 1.x record: write ${MANIFEST} in its place (references/upgrading.md, "The manifest").`);
     else if (!d.manifest && d.status !== 'none') app.warnings.push(`No ${MANIFEST}: write it at the end of this run (references/upgrading.md, "The manifest").`);
@@ -169,6 +224,8 @@ export async function validate(target) {
       if (m) {
         const installed = d.runtimes.map((r) => r.version).sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))[0];
         if (m.skill && m.skill !== 'ai-enablement') app.warnings.push(`${d.manifest}: "skill" is "${m.skill}"; it should be "ai-enablement".`);
+        if (!m.stack && d.stack?.id) app.notes.push(`${d.manifest} does not record the stack yet: add "stack": { "id": "${d.stack.id}"${d.stack.host ? `, "host": "${d.stack.host}"` : ''} } (references/upgrading.md, "The manifest").`);
+        else if (m.stack && !(typeof m.stack === 'string' ? m.stack : m.stack.id)) app.warnings.push(`${d.manifest}: "stack" needs an "id" (web, rust-egui, dotnet-winforms…).`);
         if (installed && m.runtimeVersion && m.runtimeVersion !== installed) app.warnings.push(`${d.manifest} says runtime ${m.runtimeVersion}, but the app has ${installed}: update the manifest.`);
         const idx = m.capabilities?.index;
         if (idx && !fs.existsSync(path.join(root, ...String(idx).split('/')))) app.warnings.push(`${d.manifest} names the capability index ${idx}, which does not exist.`);

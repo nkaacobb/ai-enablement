@@ -7,3 +7,8 @@ relay-limits.json
 # Verification output, dependencies
 .verify/
 node_modules/
+
+# Build output of the native runtimes (assets/rust, assets/dotnet)
+target/
+bin/
+obj/

@@ -70,7 +70,8 @@ for target in $TARGETS; do
 
   mkdir -p "$ROOT"
   cp -R "$SOURCE" "$DEST"
-  find "$DEST" -type d \( -name node_modules -o -name .git -o -name .verify -o -name chrome-profile \) -prune -exec rm -rf {} +
+  # target, bin, obj: build output of the Rust and .NET runtimes (assets/rust, assets/dotnet)
+  find "$DEST" -type d \( -name node_modules -o -name .git -o -name .verify -o -name chrome-profile -o -name target -o -name bin -o -name obj \) -prune -exec rm -rf {} +
   echo "Installed $DEST ($(find "$DEST" -type f | wc -l | tr -d ' ') files)"
 done
 

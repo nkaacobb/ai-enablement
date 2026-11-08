@@ -5,7 +5,7 @@
 </p>
 
 This repository packages an application AI framework so that Claude Code, Codex and GitHub Copilot can install it in
-any web app, upgrade it safely, and extend it on request:
+an app, upgrade it safely, and extend it on request:
 
 > **Application X has an AI agent that slides out from the right, sees what is on the current screen (plus what the
 > app and the page are for), acts in the app through tools that wrap its own functions (you confirm changes and
@@ -16,10 +16,26 @@ any web app, upgrade it safely, and extend it on request:
 
 | | |
 | --- | --- |
-| **The skill** — [`ai-enablement/`](ai-enablement/) | Instructions ([`SKILL.md`](ai-enablement/SKILL.md) + [`references/`](ai-enablement/references/)), the runtime and relays copied into apps, templates, lifecycle scripts (detect, validate, scaffold, verify, workspace), and tests. |
+| **The skill** — [`ai-enablement/`](ai-enablement/) | Instructions ([`SKILL.md`](ai-enablement/SKILL.md), the portable contract in [`spec/`](ai-enablement/spec/), one recipe per stack in [`stacks/`](ai-enablement/stacks/), [`references/`](ai-enablement/references/)), the runtime and relays copied into apps, templates, lifecycle scripts (detect, validate, scaffold, verify, workspace), conformance vectors and tests. |
 | **The Hello World app** — [`ai-enablement/examples/hello-world/`](ai-enablement/examples/hello-world/) | A small text editor with the agent built in, on the framework: three toolsets, two skills, two agents. The reference integration. |
 | **The installer** — [`install-skill.ps1`](install-skill.ps1) / [`install-skill.sh`](install-skill.sh) | Copies the skill to the user-wide skill folders so it is available in every project. |
 | **Design notes** — [`docs/ai-enablement-design.md`](docs/ai-enablement-design.md) | How `add-ai-skill` became `ai-enablement`: what was kept, what was decided, what comes next. |
+
+## Which apps
+
+The skill works out the app's **stack** first (`scripts/detect.mjs`), because the stack decides which runtime draws
+the agent:
+
+| Stack | Apps | Status |
+| --- | --- | --- |
+| `web` | HTML, PHP, React, Vue, Svelte, Angular, Next.js; **Tauri** (a webview over Rust); **ASP.NET Core / Blazor** (HTML from C#) | supported: the JS runtime |
+| `rust-egui` | native Rust desktop apps with egui / eframe | planned: a Rust runtime (core + egui drawer) |
+| `dotnet-winforms` | native C# desktop apps with Windows Forms | planned: a .NET runtime (core + WinForms panel) |
+
+What the AI can do lives in the app's `ai/` folder, in the same format on every stack: skills, agents, toolsets,
+permissions, tool defaults and memories. Every runtime behaves the same way. [`spec/behaviour.md`](ai-enablement/spec/behaviour.md)
+says how, and [`spec/conformance/`](ai-enablement/spec/conformance/) pins it as test vectors that each runtime must
+reproduce. On a planned stack the skill stops before installing, and offers the survey, the plan and the `ai/` folder.
 
 ## What the framework is
 
@@ -144,13 +160,15 @@ The **+** button attaches images and files (PDF, Word, Excel, text…).
 Before each question, the runtime hashes the screen content and compares it with the newest snapshot the model
 already has in the conversation. If they match, it sends only the question. If not, it attaches a fresh snapshot.
 That result drives the flag: green = in sync, amber = changed, blue = not read yet. Details:
-[`references/context-sync.md`](ai-enablement/references/context-sync.md).
+[`spec/context-sync.md`](ai-enablement/spec/context-sync.md).
 
 ## What's inside the skill
 
 ```
 ai-enablement/
-  SKILL.md                 what the coding agent follows: detect, then install / upgrade / validate / add
+  SKILL.md                 what the coding agent follows: detect (the stack first), then install / upgrade / validate / add
+  spec/                    the portable contract: framework · context-sync · behaviour · tool-catalog · conformance/ (vectors)
+  stacks/                  one recipe per stack: web/STACK.md (incl. Tauri, ASP.NET Core) · rust-egui/ · dotnet-winforms/
   CHANGELOG.md             what changed per version, with upgrade notes for apps
   agents/openai.yaml       Codex display metadata
   assets/ai-agent/         the runtime (copied into apps unchanged): ai-agent.js · ai-agent.css · ai-agent.d.ts
@@ -166,15 +184,16 @@ ai-enablement/
   examples/hello-world/    the demo: app.js (the editor) · ai-agent-setup.js (the integration) · content.js (pure, tested)
                            · ai/ (index, toolsets document/editor/file, skills, agents, tool defaults, memories)
                            · ai-enablement.json (the manifest)
-  references/              framework · capabilities · in-app-authoring · upgrading · tools · api · memory-and-vision ·
-                           context-sync · frameworks · providers · checklist · architecture
-  scripts/detect.mjs       run first on any app: what is there, which version, what to do
+  references/              capabilities · in-app-authoring · upgrading · tools · api · memory-and-vision · frameworks ·
+                           providers · settings-layout · checklist · architecture
+  scripts/detect.mjs       run first on any app: the stack, what is there, which version, what to do
+  scripts/conformance-export.mjs   writes spec/conformance/ from the JS runtime (on purpose only)
   scripts/validate.mjs     the capability folder, loaded as the runtime loads it: errors and warnings
   scripts/scaffold.mjs     a tool, toolset, skill or agent from the templates, registered (never overwrites)
   scripts/verify.mjs       checks a running integration in headless Edge/Chrome (scripts/lib/cdp.mjs is its driver)
   scripts/workspace.mjs    development server for in-app authoring (static site + relay + workspace endpoint)
-  tests/                   node --test: runtime · framework · attached files · relays (Node + PHP) · real browser ·
-                           framework in the browser · workspace · lifecycle · example · detect
+  tests/                   node --test: conformance · runtime · framework · attached files · relays (Node + PHP) ·
+                           real browser · framework in the browser · workspace · lifecycle · example · detect (+ stacks)
   package.json             npm test · npm run demo · npm run workspace · npm run verify · npm run validate
 ```
 

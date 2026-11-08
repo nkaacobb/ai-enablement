@@ -1,0 +1,183 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "agents",
+  "description": "Agent files (Markdown + YAML frontmatter): fields, defaults (omitted lists = all), context layers, memory modes, limits; which agent starts.",
+  "operation": "parseAgent(input.text, { file: input.file }) -> { agent, problems }; pickAgent(agents, wanted) -> name",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "full agent",
+      "input": {
+        "file": "agents/proofreader.md",
+        "text": "---\nname: proofreader\ntitle: Proofreader\ndescription: Checks spelling.\ntoolsets: [document]\ntools: [rename_file]\nskills: [proofreading]\npermissions:\n  deny: [insert_text]\ncontext: [app, page, screen]\nmemory: read\nmaxToolSteps: 12\nmodel: qwen/qwen3-8b\nwelcome: Hi.\nsuggestions: [Proofread the document]\ndefault: true\n---\nYou are a careful proofreader."
+      },
+      "output": {
+        "agent": {
+          "name": "proofreader",
+          "title": "Proofreader",
+          "description": "Checks spelling.",
+          "instructions": "You are a careful proofreader.",
+          "tools": [
+            "rename_file"
+          ],
+          "toolsets": [
+            "document"
+          ],
+          "skills": [
+            "proofreading"
+          ],
+          "permissions": {
+            "allow": [],
+            "ask": [],
+            "deny": [
+              "insert_text"
+            ]
+          },
+          "context": {
+            "app": true,
+            "page": true,
+            "screen": true,
+            "view": false
+          },
+          "memory": "read",
+          "maxToolSteps": 12,
+          "model": "qwen/qwen3-8b",
+          "welcome": "Hi.",
+          "suggestions": [
+            "Proofread the document"
+          ],
+          "default": true,
+          "file": "agents/proofreader.md"
+        },
+        "problems": []
+      }
+    },
+    {
+      "name": "minimal: name from the file",
+      "input": {
+        "file": "agents/writer.md",
+        "text": "---\ndescription: Writes.\n---\nYou write."
+      },
+      "output": {
+        "agent": {
+          "name": "writer",
+          "title": "Writer",
+          "description": "Writes.",
+          "instructions": "You write.",
+          "tools": null,
+          "toolsets": null,
+          "skills": null,
+          "permissions": {
+            "allow": [],
+            "ask": [],
+            "deny": []
+          },
+          "context": {
+            "app": true,
+            "page": true,
+            "screen": true,
+            "view": true
+          },
+          "memory": "on",
+          "maxToolSteps": null,
+          "model": "",
+          "welcome": "",
+          "suggestions": [],
+          "default": false,
+          "file": "agents/writer.md"
+        },
+        "problems": []
+      }
+    },
+    {
+      "name": "bad values reported",
+      "input": {
+        "file": "agents/x.md",
+        "text": "---\nname: x\ndescription: d\nmemory: sometimes\nmaxToolSteps: 99\ncontext: [app, mind]\ncolour: blue\n---\nI."
+      },
+      "output": {
+        "agent": {
+          "name": "x",
+          "title": "X",
+          "description": "d",
+          "instructions": "I.",
+          "tools": null,
+          "toolsets": null,
+          "skills": null,
+          "permissions": {
+            "allow": [],
+            "ask": [],
+            "deny": []
+          },
+          "context": {
+            "app": true,
+            "page": false,
+            "screen": false,
+            "view": false
+          },
+          "memory": "on",
+          "maxToolSteps": null,
+          "model": "",
+          "welcome": "",
+          "suggestions": [],
+          "default": false,
+          "file": "agents/x.md"
+        },
+        "problems": [
+          "\"colour\" is not an agent setting; it is ignored.",
+          "context: \"mind\" is not a context layer (app, page, screen, view).",
+          "memory: \"sometimes\" is not one of on, read, off.",
+          "maxToolSteps must be a whole number from 1 to 30."
+        ]
+      }
+    },
+    {
+      "name": "missing description",
+      "input": {
+        "file": "agents/y.md",
+        "text": "---\nname: y\n---\nI."
+      },
+      "output": {
+        "agent": null,
+        "problems": [
+          "description is missing: it tells the user (and other agents) what this agent is for."
+        ]
+      }
+    },
+    {
+      "name": "pick: wanted, else default, else first",
+      "input": {
+        "pick": [
+          {
+            "agents": [
+              "a",
+              "b*",
+              "c"
+            ],
+            "wanted": "c"
+          },
+          {
+            "agents": [
+              "a",
+              "b*",
+              "c"
+            ],
+            "wanted": ""
+          },
+          {
+            "agents": [
+              "a",
+              "c"
+            ],
+            "wanted": "zzz"
+          }
+        ]
+      },
+      "output": [
+        "c",
+        "b",
+        "a"
+      ]
+    }
+  ]
+}

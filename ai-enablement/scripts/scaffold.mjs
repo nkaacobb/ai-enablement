@@ -10,6 +10,7 @@
 //   node <skill>/scripts/scaffold.mjs <capability-folder> skill <name> --description "…" [--title "…"]
 //   node <skill>/scripts/scaffold.mjs <capability-folder> agent <name> --description "…" [--title "…"]
 //                                      [--tools a,b] [--toolsets x,y] [--skills s,t]
+//   any of them: [--stack web|rust-egui|dotnet-winforms]  (default: the "stack" in the nearest ai-enablement.json, else web)
 //
 // <capability-folder> is the folder that holds (or will hold) index.json, e.g. public/ai. `init` creates index.json,
 // ai-tools.json and ai-memory.json there; the other kinds run `init` first when there is no index yet.
@@ -18,6 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { STACKS, stackSupport } from './lib/stacks.mjs';
 
 const SKILL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATES = path.join(SKILL, 'assets', 'templates', 'ai');
@@ -25,6 +27,27 @@ const TOOL_NAME = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const SKILL_NAME = /^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const EFFECTS = ['read', 'write', 'destructive', 'external', 'system'];
 const KIND_LIST = { tool: 'tools', toolset: 'toolsets', skill: 'skills', agent: 'agents' };
+const LANGUAGE = { rust: 'Rust', dotnet: 'C#' };
+
+/** The app's stack for this capability folder: --stack, else the nearest manifest's "stack" above it, else web. */
+export function stackFor(dir, explicit = '') {
+  if (explicit) {
+    if (!STACKS[explicit]) throw new Error(`--stack "${explicit}" is not a known stack (${Object.keys(STACKS).join(', ')}).`);
+    return explicit;
+  }
+  let d = path.resolve(dir);
+  for (let i = 0; i < 12; i++) {
+    const f = path.join(d, 'ai-enablement.json');
+    if (fs.existsSync(f)) {
+      try { const s = JSON.parse(fs.readFileSync(f, 'utf8')).stack; const id = typeof s === 'string' ? s : s?.id; if (id && STACKS[id]) return id; } catch { /* unreadable: fall through */ }
+      break;
+    }
+    const up = path.dirname(d);
+    if (up === d) break;
+    d = up;
+  }
+  return 'web';
+}
 
 const title = (name) => String(name).replace(/[_-]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 const fill = (text, values) => text.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in values ? values[k] : m));
@@ -70,9 +93,20 @@ export function scaffold(dir, kind, name = '', opts = {}) {
     done.created.push(rel);
   };
 
+  const stack = stackFor(root, opts.stack);
+  const family = STACKS[stack].family;
+  const compiled = family !== 'web';
   if (kind === 'init' || !fs.existsSync(indexFile)) {
     fs.mkdirSync(root, { recursive: true });
-    if (!fs.existsSync(indexFile)) create('index.json', fs.readFileSync(path.join(TEMPLATES, 'index.json'), 'utf8'));
+    if (!fs.existsSync(indexFile)) {
+      // Compiled stacks: tools are code, listed by the generated tool catalog, never by module paths.
+      const template = readJson(path.join(TEMPLATES, 'index.json'));
+      if (compiled) {
+        delete template.tools;
+        template.$comment = `The application's capability index: what its AI can do (AI Enablement, stack ${stack}). Paths are relative to this file. The tools are ${LANGUAGE[family]} code: once the app's catalog test has written tools.catalog.json, name it here as "toolCatalog" (spec/tool-catalog.md). Check it with: node <skill>/scripts/validate.mjs <app-root>`;
+      }
+      create('index.json', compiled ? `${formatJson(template)}\n` : fs.readFileSync(path.join(TEMPLATES, 'index.json'), 'utf8'));
+    }
     if (!fs.existsSync(path.join(root, 'ai-tools.json'))) {
       create('ai-tools.json', `${formatJson({ $comment: 'Which tools start on (named as "toolsConfig" in index.json). Users change it in Settings > Tools; "Download ai-tools.json" there writes this format.', toolsEnabled: true, confirmWrites: true, confirmDestructive: true, toolMode: 'auto', maxToolSteps: 8, tools: {} })}\n`);
     }
@@ -80,7 +114,8 @@ export function scaffold(dir, kind, name = '', opts = {}) {
       create('ai-memory.json', `${formatJson({ $comment: 'What the agent knows from the start (named as "memory" in index.json): facts no screen shows. Never secrets.', version: 1, memories: [] })}\n`);
     }
     if (kind === 'init') {
-      done.next.push('Load it: createAiAgent({ capabilities: \'<URL of index.json>\', host: <the object your tools call> }).', 'Add capabilities: scaffold.mjs <folder> tool|skill|agent <name>.');
+      if (compiled) done.next.push(`Load it as stacks/${stack}/STACK.md §4 says (embedded or next to the executable).`, 'Add capabilities: scaffold.mjs <folder> skill|agent|toolset <name>; tools are written in code (§9).');
+      else done.next.push('Load it: createAiAgent({ capabilities: \'<URL of index.json>\', host: <the object your tools call> }).', 'Add capabilities: scaffold.mjs <folder> tool|skill|agent <name>.');
       return done;
     }
   }
@@ -93,6 +128,10 @@ export function scaffold(dir, kind, name = '', opts = {}) {
   };
   const description = String(opts.description || '').replace(/\s+/g, ' ').trim();
 
+  if (kind === 'tool' && compiled) {
+    const { status, profile } = stackSupport(stack, SKILL);
+    throw new Error(`On ${stack} a tool is ${LANGUAGE[family]} code in the app, not a file in the capability folder (${profile || `stacks/${stack}/STACK.md`} §9).${status === 'supported' ? '' : ` The ${stack} runtime is not in this skill yet, so there is nothing to write tools against: scaffold skills, agents and toolsets now, tools once the runtime ships.`}`);
+  }
   if (kind === 'tool') {
     if (!TOOL_NAME.test(name)) throw new Error(`"${name}" is not a tool name: letters, digits, _ or -, starting with a letter.`);
     const effect = opts.effect || 'write';
@@ -148,7 +187,7 @@ export function scaffold(dir, kind, name = '', opts = {}) {
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const argv = process.argv.slice(2);
-  const valued = new Set(['effect', 'title', 'description', 'tools', 'toolsets', 'skills']);
+  const valued = new Set(['effect', 'title', 'description', 'tools', 'toolsets', 'skills', 'stack']);
   const opts = {};
   const pos = [];
   for (let i = 0; i < argv.length; i++) {

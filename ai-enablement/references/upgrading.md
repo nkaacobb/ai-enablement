@@ -217,7 +217,7 @@ Offer only what fits the app; record what the user declines (U7) so the next upg
 | **Capability folder** — tools, toolsets, permissions in `ai/` | 1.6 | Before adding skills, agents or in-app authoring; or to organise many tools | "Adopting the framework" below. |
 | **Skills** — written procedures the agent loads | 1.6 | Users repeat multi-step work (proofread, reconcile, design) | `scaffold.mjs … skill`; steps naming the tools (`capabilities.md`). |
 | **Agents** — roles the user picks | 1.6 | Distinct kinds of work needing their own instructions, tools or permissions | `scaffold.mjs … agent`; compose existing tools, toolsets, skills. |
-| **Permissions** — allow / ask / deny | 1.6 | Something must always confirm, or never run, whatever users switch | `permissions` in the index or an agent (`framework.md`). |
+| **Permissions** — allow / ask / deny | 1.6 | Something must always confirm, or never run, whatever users switch | `permissions` in the index or an agent (`spec/framework.md`). |
 | **In-app authoring** — the app's AI adds tools | 1.6 | Developers want to grow the tool set from inside the app | `host`, `workspace: true` in development, `scripts/workspace.mjs` (`in-app-authoring.md`). |
 | **Memory** — notes kept between conversations | 1.3 | Always (it is on once the runtime is replaced) | Seed notes the screen does not show — ask the user — in `ai-memory.json`, loaded with `memoryFile`; `memorySave` if the app's backend should keep users' notes (`memory-and-vision.md`). |
 | **Vision** — screenshots for models that see images | 1.3 | Always (on once the runtime is replaced); most useful where the screen is visual: canvases, WebGL, charts, layouts | Decide how the picture is taken: the browser's screen capture (nothing to write) or a `screenshot` hook for a canvas view; `defaults.vision` for the app's default model; host requirements; relay 1.3 (`memory-and-vision.md`). |
@@ -253,7 +253,7 @@ Runtime 1.6 loads tools, toolsets, skills and agents from a capability folder. A
 (`tools: appTools`) keeps working unchanged: adoption is **offered, never forced** — propose it when the user wants
 skills or agents, asks for a new tool, or wants the app's AI to add tools itself (`in-app-authoring.md`).
 
-1. `node <skill>/scripts/scaffold.mjs <served-dir>/ai init` — next to the app's static files (`framework.md`,
+1. `node <skill>/scripts/scaffold.mjs <served-dir>/ai init` — next to the app's static files (`spec/framework.md`,
    "Bundled apps" for apps built from `src/`).
 2. **Move, do not rewrite, the tools.** Give the integration a `host` (the object the tools close over: the store, a
    service layer, the app instance). Move each tools module into `ai/tools/` as a toolset module whose tools take
@@ -292,6 +292,7 @@ refuses one that looks like it holds a key).
   "runtimeVersion": "1.6.1",
   "updated": "2026-10-02",
   "appId": "inventory",
+  "stack": { "id": "web", "host": "php" },
   "framework": {
     "runtime": "public/ai-agent",
     "relay": { "file": "public/api/relay.php", "version": "1.4.0", "mode": "public", "config": "AIA_RELAY_DIR (outside the web root)" }
@@ -320,6 +321,10 @@ refuses one that looks like it holds a key).
 }
 ```
 
+- `stack` (skill 3.0) pins the app's tech stack for every later run: `id` is `web`, `rust-egui` or `dotnet-winforms`
+  (the recipes in `stacks/`), plus `host` for web apps (`static`, `php`, `node`, `tauri`, `aspnet`) and optionally
+  `ui` (`"egui 0.37"`). detect.mjs reports the stack it sees; the manifest's wins, and a disagreement is flagged. An
+  older manifest without it gets a note from validate: add it.
 - `framework` names the framework-owned files: with the skill's release fingerprints they tell an unchanged copy
   (replace it) from an edited one (reconcile it). Everything else listed is app-owned.
 - `features` uses these names so the next run can tell what is there: `tools`, `memory`, `vision:screen` (the

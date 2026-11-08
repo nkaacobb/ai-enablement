@@ -45,7 +45,7 @@ application the agent could not see ("the easter egg opens with Ctrl+Shift+E").
    createAiAgent({ …, memoryFile: 'ai-memory.json' });   // a URL, an object, or a (possibly async) function
    ```
    With a capability folder, put it there and name it in the index instead (`"memory": "ai-memory.json"`).
-   An agent can be limited to reading the notes (`memory: read`) or see none (`memory: off`) — `framework.md`.
+   An agent can be limited to reading the notes (`memory: read`) or see none (`memory: off`) — `spec/framework.md`.
    `created` / `updated` (ISO dates) are optional; a plain array of strings works too. Keep ids stable once shipped
    (users' edits and deletions refer to them). The file is public like any asset: never put private data in it.
 3. **Decide where users' own memories live.** By default: in the browser (`<appId>.ai.memory` in localStorage), so

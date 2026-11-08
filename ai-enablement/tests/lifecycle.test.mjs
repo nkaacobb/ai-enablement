@@ -101,3 +101,78 @@ test('validate: Hello World is clean', async () => {
   assert.deepEqual(v.indexes.map((r) => [r.errors, r.warnings]), [[[], []]]);
   assert.deepEqual(v.app.errors, []);
 });
+
+// ── Compiled stacks (skill 3.0): tools are code; the generated tool catalog stands in for them (spec/tool-catalog.md) ──
+
+const rustApp = () => {
+  const app = tmp();
+  write(app, 'Cargo.toml', '[package]\nname = "notes"\n[dependencies]\neframe = "0.37"\n');
+  write(app, 'ai-enablement.json', JSON.stringify({ skill: 'ai-enablement', stack: { id: 'rust-egui' } }));
+  return app;
+};
+
+test('scaffold on a compiled stack: the index lists no tool modules, and a tool is refused with where it goes instead', () => {
+  const app = rustApp();
+  const ai = path.join(app, 'resources', 'ai');
+  scaffold(ai, 'init');
+  const index = json(ai, 'index.json');
+  assert.equal('tools' in index, false, 'no tool modules on a compiled stack');
+  assert.match(index.$comment, /stack rust-egui/);
+  assert.throws(() => scaffold(ai, 'tool', 'list_notes', { effect: 'read' }), /On rust-egui a tool is Rust code in the app[\s\S]*stacks\/rust-egui\/STACK\.md §9/);
+  assert.equal(fs.existsSync(path.join(ai, 'tools')), false, 'nothing written');
+  assert.doesNotThrow(() => scaffold(ai, 'skill', 'review-notes', { description: 'Review the notes for gaps. Use when asked to review.' }));
+  assert.throws(() => scaffold(ai, 'init', '', { stack: 'cobol' }), /not a known stack/);
+  const web = path.join(tmp(), 'ai');
+  scaffold(web, 'init', '', { stack: 'web' });
+  assert.deepEqual(json(web, 'index.json').tools, [], '--stack web keeps the JS layout');
+});
+
+test('validate on a compiled stack: without a catalog tool references are unchecked warnings; with one they are checked', async () => {
+  const app = rustApp();
+  const ai = path.join(app, 'resources', 'ai');
+  scaffold(ai, 'init');
+  scaffold(ai, 'agent', 'assistant', { description: 'Answers about the notes.', tools: 'list_notes,delete_note' });
+  let v = await validate(app);
+  assert.equal(v.ok, true, 'unchecked references do not fail validation');
+  assert.ok(v.indexes[0].warnings.some((w) => /tool "list_notes" does not exist \(not checked: the tools are code/.test(w)));
+  assert.ok(v.app.warnings.some((w) => /name the generated tool catalog/.test(w)));
+
+  write(ai, 'tools.catalog.json', JSON.stringify({
+    format: 'ai-enablement/tools/1',
+    generator: 'tests/ai_catalog.rs',
+    tools: [
+      { name: 'list_notes', title: 'List notes', description: 'The notes on screen.', effect: 'read', toolset: 'notes', inputSchema: { type: 'object', properties: { limit: { type: 'integer', minimum: 1, maximum: 50 } } } },
+      { name: 'delete_note', title: 'Delete a note', description: 'Delete one note.', effect: 'destructive', toolset: 'notes', inputSchema: { type: 'object', properties: { id: { type: 'string', maxLength: 40 } }, required: ['id'] } },
+    ],
+    toolsets: [{ name: 'notes', title: 'Notes', description: 'The note list.', tools: ['list_notes', 'delete_note'] }],
+  }));
+  const index = json(ai, 'index.json');
+  fs.writeFileSync(path.join(ai, 'index.json'), JSON.stringify({ ...index, toolCatalog: 'tools.catalog.json' }));
+  v = await validate(app);
+  assert.equal(v.ok, true, JSON.stringify(v.indexes[0].errors));
+  assert.deepEqual(v.indexes[0].tools, ['list_notes (read)', 'delete_note (destructive)']);
+  assert.equal(v.indexes[0].counts.toolsets, 1);
+  assert.equal(v.app.warnings.some((w) => /tool catalog/.test(w)), false);
+
+  // With the catalog, a reference to a tool that is not in it is a real error again, and a bad schema is refused.
+  scaffold(ai, 'agent', 'archivist', { description: 'Archives notes.', tools: 'archive_note' });
+  const cat = json(ai, 'tools.catalog.json');
+  cat.tools.push({ name: 'merge_notes', description: 'Merge.', effect: 'write', inputSchema: { type: 'object', properties: { ids: { oneOf: [{ type: 'string' }] } } } });
+  fs.writeFileSync(path.join(ai, 'tools.catalog.json'), JSON.stringify(cat));
+  v = await validate(app);
+  assert.equal(v.ok, false);
+  assert.ok(v.indexes[0].errors.some((e) => /agent "archivist": tool "archive_note" does not exist\.$/.test(e)));
+  assert.ok(v.indexes[0].errors.some((e) => /tools\.catalog\.json: .*oneOf/.test(e)), v.indexes[0].errors.join('\n'));
+});
+
+test('validate: a catalog with the wrong format, or one the index names but is missing, is an error', async () => {
+  const app = rustApp();
+  const ai = path.join(app, 'resources', 'ai');
+  scaffold(ai, 'init');
+  fs.writeFileSync(path.join(ai, 'index.json'), JSON.stringify({ ...json(ai, 'index.json'), toolCatalog: 'tools.catalog.json' }));
+  let v = await validate(app);
+  assert.ok(v.indexes[0].errors.some((e) => /tools\.catalog\.json \(the tool catalog\) could not be read \(missing: run the app's catalog test with AI_CATALOG_UPDATE=1\)/.test(e)));
+  write(ai, 'tools.catalog.json', JSON.stringify({ format: 'something-else', tools: [] }));
+  v = await validate(app);
+  assert.ok(v.indexes[0].errors.some((e) => /"format" must be "ai-enablement\/tools\/1"/.test(e)));
+});

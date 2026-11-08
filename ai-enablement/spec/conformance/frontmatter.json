@@ -1,0 +1,107 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "frontmatter",
+  "description": "The YAML subset of skill and agent frontmatter: scalars, flow and block lists, nested mappings, quoted strings, comments; what it cannot read is reported, never guessed.",
+  "operation": "parseFrontmatter(input.text) -> { data, body, errors }",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "scalars and lists",
+      "input": {
+        "text": "---\nname: proofreader\nmaxToolSteps: 12\ndefault: true\ntools: [find_text, replace_text]\nskills:\n  - proofreading\n---\nYou proofread.\n"
+      },
+      "output": {
+        "data": {
+          "name": "proofreader",
+          "maxToolSteps": 12,
+          "default": true,
+          "tools": [
+            "find_text",
+            "replace_text"
+          ],
+          "skills": [
+            "proofreading"
+          ]
+        },
+        "body": "You proofread.\n",
+        "errors": []
+      }
+    },
+    {
+      "name": "quoted strings and a comment",
+      "input": {
+        "text": "---\ndescription: \"Fix: spelling and grammar\" # why\ntitle: 'It''s me'\n---\nBody"
+      },
+      "output": {
+        "data": {
+          "description": "Fix: spelling and grammar",
+          "title": "It's me"
+        },
+        "body": "Body",
+        "errors": []
+      }
+    },
+    {
+      "name": "nested mapping",
+      "input": {
+        "text": "---\npermissions:\n  deny: [insert_text]\n  ask:\n    - toolset:file\nmetadata:\n  app: hello\n---\n"
+      },
+      "output": {
+        "data": {
+          "permissions": {
+            "deny": [
+              "insert_text"
+            ],
+            "ask": [
+              "toolset:file"
+            ]
+          },
+          "metadata": {
+            "app": "hello"
+          }
+        },
+        "body": "",
+        "errors": []
+      }
+    },
+    {
+      "name": "folded description",
+      "input": {
+        "text": "---\ndescription: >\n  Line one\n  line two.\n---\nB"
+      },
+      "output": {
+        "data": {
+          "description": "Line one line two.\n"
+        },
+        "body": "B",
+        "errors": []
+      }
+    },
+    {
+      "name": "no frontmatter",
+      "input": {
+        "text": "# Just Markdown"
+      },
+      "output": {
+        "data": {},
+        "body": "# Just Markdown",
+        "errors": []
+      }
+    },
+    {
+      "name": "unreadable line is reported",
+      "input": {
+        "text": "---\nname: x\n: oops\n---\nB"
+      },
+      "output": {
+        "data": {
+          "name": "x"
+        },
+        "body": "B",
+        "errors": [
+          "Line 2: expected \"key: value\", found \": oops\"."
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,420 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "tool-contract",
+  "description": "normalizeTool and toMcpTool: a tool definition (handler left out) becomes the runtime's contract and its MCP descriptor, or is refused with the reason. Effects come from \"effect\", else MCP annotations, else \"write\".",
+  "operation": "normalizeTool({ ...input.tool, run }) -> { tool (functions left out), mcp: toMcpTool(tool) } | { error }",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "shorthand parameters",
+      "input": {
+        "tool": {
+          "name": "filter_orders",
+          "description": "Show only orders with this status.",
+          "effect": "write",
+          "parameters": {
+            "status": {
+              "type": "enum",
+              "values": [
+                "open",
+                "shipped"
+              ],
+              "required": true
+            },
+            "limit": {
+              "type": "integer",
+              "min": 1,
+              "max": 50,
+              "default": 10
+            }
+          }
+        }
+      },
+      "output": {
+        "tool": {
+          "name": "filter_orders",
+          "title": "Filter orders",
+          "description": "Show only orders with this status.",
+          "parameters": {
+            "status": {
+              "type": "enum",
+              "values": [
+                "open",
+                "shipped"
+              ],
+              "required": true
+            },
+            "limit": {
+              "type": "integer",
+              "min": 1,
+              "max": 50,
+              "default": 10
+            }
+          },
+          "effect": "write",
+          "pages": [],
+          "when": null,
+          "group": "",
+          "toolset": "",
+          "enabled": false,
+          "timeoutMs": 30000
+        },
+        "mcp": {
+          "name": "filter_orders",
+          "title": "Filter orders",
+          "description": "Show only orders with this status.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "shipped"
+                ]
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "annotations": {
+            "title": "Filter orders",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+          }
+        }
+      }
+    },
+    {
+      "name": "JSON Schema input",
+      "input": {
+        "tool": {
+          "name": "set_size",
+          "description": "Font size.",
+          "effect": "write",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "size": {
+                "type": "integer",
+                "minimum": 11,
+                "maximum": 24,
+                "description": "px"
+              },
+              "wrap": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "size"
+            ]
+          }
+        }
+      },
+      "output": {
+        "tool": {
+          "name": "set_size",
+          "title": "Set size",
+          "description": "Font size.",
+          "parameters": {
+            "size": {
+              "type": "integer",
+              "min": 11,
+              "max": 24,
+              "description": "px",
+              "required": true
+            },
+            "wrap": {
+              "type": "boolean"
+            }
+          },
+          "effect": "write",
+          "pages": [],
+          "when": null,
+          "group": "",
+          "toolset": "",
+          "enabled": false,
+          "timeoutMs": 30000
+        },
+        "mcp": {
+          "name": "set_size",
+          "title": "Set size",
+          "description": "Font size.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "size": {
+                "description": "px",
+                "type": "integer",
+                "minimum": 11,
+                "maximum": 24
+              },
+              "wrap": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "size"
+            ]
+          },
+          "annotations": {
+            "title": "Set size",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+          }
+        }
+      }
+    },
+    {
+      "name": "effect from annotations",
+      "input": {
+        "tool": {
+          "name": "peek",
+          "description": "Look.",
+          "annotations": {
+            "readOnlyHint": true
+          }
+        }
+      },
+      "output": {
+        "tool": {
+          "name": "peek",
+          "title": "Peek",
+          "description": "Look.",
+          "parameters": {},
+          "effect": "read",
+          "pages": [],
+          "when": null,
+          "group": "",
+          "toolset": "",
+          "enabled": false,
+          "timeoutMs": 30000,
+          "annotations": {
+            "readOnlyHint": true
+          }
+        },
+        "mcp": {
+          "name": "peek",
+          "title": "Peek",
+          "description": "Look.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "annotations": {
+            "title": "Peek",
+            "readOnlyHint": true,
+            "openWorldHint": false
+          }
+        }
+      }
+    },
+    {
+      "name": "no effect: write",
+      "input": {
+        "tool": {
+          "name": "poke",
+          "description": "Change."
+        }
+      },
+      "output": {
+        "tool": {
+          "name": "poke",
+          "title": "Poke",
+          "description": "Change.",
+          "parameters": {},
+          "effect": "write",
+          "pages": [],
+          "when": null,
+          "group": "",
+          "toolset": "",
+          "enabled": false,
+          "timeoutMs": 30000
+        },
+        "mcp": {
+          "name": "poke",
+          "title": "Poke",
+          "description": "Change.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "annotations": {
+            "title": "Poke",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": false
+          }
+        }
+      }
+    },
+    {
+      "name": "external",
+      "input": {
+        "tool": {
+          "name": "send_mail",
+          "description": "Send.",
+          "effect": "external",
+          "parameters": {
+            "to": {
+              "type": "string",
+              "maxLength": 200,
+              "required": true
+            }
+          }
+        }
+      },
+      "output": {
+        "tool": {
+          "name": "send_mail",
+          "title": "Send mail",
+          "description": "Send.",
+          "parameters": {
+            "to": {
+              "type": "string",
+              "maxLength": 200,
+              "required": true
+            }
+          },
+          "effect": "external",
+          "pages": [],
+          "when": null,
+          "group": "",
+          "toolset": "",
+          "enabled": false,
+          "timeoutMs": 30000
+        },
+        "mcp": {
+          "name": "send_mail",
+          "title": "Send mail",
+          "description": "Send.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "to"
+            ]
+          },
+          "annotations": {
+            "title": "Send mail",
+            "readOnlyHint": false,
+            "destructiveHint": false,
+            "openWorldHint": true
+          }
+        }
+      }
+    },
+    {
+      "name": "system",
+      "input": {
+        "tool": {
+          "name": "write_file",
+          "description": "Write.",
+          "effect": "system"
+        }
+      },
+      "output": {
+        "tool": {
+          "name": "write_file",
+          "title": "Write file",
+          "description": "Write.",
+          "parameters": {},
+          "effect": "system",
+          "pages": [],
+          "when": null,
+          "group": "",
+          "toolset": "",
+          "enabled": false,
+          "timeoutMs": 30000
+        },
+        "mcp": {
+          "name": "write_file",
+          "title": "Write file",
+          "description": "Write.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "annotations": {
+            "title": "Write file",
+            "readOnlyHint": false,
+            "destructiveHint": true,
+            "openWorldHint": false
+          }
+        }
+      }
+    },
+    {
+      "name": "oneOf refused",
+      "input": {
+        "tool": {
+          "name": "bad",
+          "description": "x",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "output": {
+        "error": "Tool \"bad\": \"a\" uses oneOf, which tool arguments do not support. Describe it with one type, or with an enum."
+      }
+    },
+    {
+      "name": "invalid name refused",
+      "input": {
+        "tool": {
+          "name": "9lives",
+          "description": "x"
+        }
+      },
+      "output": {
+        "error": "Tool name \"9lives\" is not valid: letters, digits, _ or -, starting with a letter, at most 64 characters."
+      }
+    },
+    {
+      "name": "reserved name refused",
+      "input": {
+        "tool": {
+          "name": "request_tool",
+          "description": "x"
+        }
+      },
+      "output": {
+        "error": "\"request_tool\" is reserved."
+      }
+    },
+    {
+      "name": "missing description refused",
+      "input": {
+        "tool": {
+          "name": "quiet"
+        }
+      },
+      "output": {
+        "error": "Tool \"quiet\" needs a description: it is what the model reads to decide when to call it."
+      }
+    }
+  ]
+}

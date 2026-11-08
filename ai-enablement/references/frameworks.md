@@ -369,7 +369,7 @@ document.addEventListener('close', signal, true);   // <dialog> closed (close do
 
 Call `contextChanged()` on every update; `debounceMaxMs` (default 1000) keeps the flag moving without app-side
 throttling. Build the content from the app's state (decode the worker's typed arrays), rounded to what the UI shows.
-See `context-sync.md`, "Apps that change all the time".
+See `spec/context-sync.md`, "Apps that change all the time".
 
 ### Code actions that small local models can drive
 

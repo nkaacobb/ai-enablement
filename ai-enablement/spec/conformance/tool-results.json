@@ -1,0 +1,65 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "tool-results",
+  "description": "serializeResult: what a tool's return value becomes for the model. undefined/null/true -> \"Done.\"; strings as written; anything else as compact stableStringify; capped with a note.",
+  "operation": "serializeResult(input.value, input.max) -> string",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "null",
+      "input": {
+        "value": null
+      },
+      "output": "Done."
+    },
+    {
+      "name": "true",
+      "input": {
+        "value": true
+      },
+      "output": "Done."
+    },
+    {
+      "name": "false",
+      "input": {
+        "value": false
+      },
+      "output": "false"
+    },
+    {
+      "name": "string",
+      "input": {
+        "value": "Showing 3 open orders."
+      },
+      "output": "Showing 3 open orders."
+    },
+    {
+      "name": "object",
+      "input": {
+        "value": {
+          "b": [
+            1,
+            2
+          ],
+          "a": "x"
+        }
+      },
+      "output": "{\"a\":\"x\",\"b\":[1,2]}"
+    },
+    {
+      "name": "number",
+      "input": {
+        "value": 42
+      },
+      "output": "42"
+    },
+    {
+      "name": "capped",
+      "input": {
+        "value": "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
+        "max": 50
+      },
+      "output": "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij… [result cut: 120 characters]"
+    }
+  ]
+}

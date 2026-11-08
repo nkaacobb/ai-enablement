@@ -1,0 +1,126 @@
+{
+  "format": "ai-enablement/conformance/1",
+  "suite": "effects-annotations",
+  "description": "Effects <-> MCP annotations, both ways.",
+  "operation": "annotationsFor(input.effect) and effectFromAnnotations(input.annotations)",
+  "reference": "assets/ai-agent 1.6.1",
+  "cases": [
+    {
+      "name": "annotations for read",
+      "input": {
+        "effect": "read"
+      },
+      "output": {
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        }
+      }
+    },
+    {
+      "name": "annotations for write",
+      "input": {
+        "effect": "write"
+      },
+      "output": {
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        }
+      }
+    },
+    {
+      "name": "annotations for destructive",
+      "input": {
+        "effect": "destructive"
+      },
+      "output": {
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        }
+      }
+    },
+    {
+      "name": "annotations for external",
+      "input": {
+        "effect": "external"
+      },
+      "output": {
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        }
+      }
+    },
+    {
+      "name": "annotations for system",
+      "input": {
+        "effect": "system"
+      },
+      "output": {
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        }
+      }
+    },
+    {
+      "name": "readOnly -> read",
+      "input": {
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "output": {
+        "effect": "read"
+      }
+    },
+    {
+      "name": "destructive -> destructive",
+      "input": {
+        "annotations": {
+          "destructiveHint": true
+        }
+      },
+      "output": {
+        "effect": "destructive"
+      }
+    },
+    {
+      "name": "openWorld -> external",
+      "input": {
+        "annotations": {
+          "openWorldHint": true
+        }
+      },
+      "output": {
+        "effect": "external"
+      }
+    },
+    {
+      "name": "readOnly false -> write",
+      "input": {
+        "annotations": {
+          "readOnlyHint": false
+        }
+      },
+      "output": {
+        "effect": "write"
+      }
+    },
+    {
+      "name": "nothing -> none",
+      "input": {
+        "annotations": {}
+      },
+      "output": {
+        "effect": ""
+      }
+    }
+  ]
+}

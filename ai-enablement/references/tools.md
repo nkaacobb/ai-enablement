@@ -10,10 +10,10 @@ already do, nothing more. Relays only pass definitions and calls through.
 
 The runtime also has built-in tools that are not part of the app's catalog — `remember`, `forget` and
 `take_screenshot` (they follow their own settings: Settings > Memory and > Vision, `memory-and-vision.md`),
-`use_skill` and `read_skill_file` (while the agent has skills, `framework.md`), and the development workspace tools
+`use_skill` and `read_skill_file` (while the agent has skills, `spec/framework.md`), and the development workspace tools
 (`in-app-authoring.md`).
 
-The contract, the module and toolset formats, effects and permissions are specified in `framework.md`; recipes for
+The contract, the module and toolset formats, effects and permissions are specified in `spec/framework.md`; recipes for
 adding a tool to an app that has the framework in `capabilities.md`. This file is the how-to: discovering the app's
 actions, writing good tools, and what users see.
 
@@ -152,7 +152,7 @@ own `enabled` (default `false`). Only choices that differ from the app's default
 `ai-tools.json` still reaches users who never touched that tool. To change the defaults: check the boxes in
 Settings > Tools, download `ai-tools.json`, and commit it to the app. Keys are **tool** names (validate reports others).
 
-Permission rules (`framework.md`) sit above all this: `deny` blocks a tool whatever the user switches, `ask` always
+Permission rules (`spec/framework.md`) sit above all this: `deny` blocks a tool whatever the user switches, `ask` always
 confirms, `allow` never does (except `system` tools, which always confirm).
 
 
